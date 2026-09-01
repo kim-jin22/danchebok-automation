@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단체복 주문 관리 대시보드 - 반복업무 사고 예방</title>
+<style>
+  :root{
+    /* 라이트 톤 · 포인트색 1개(블루) + 경고(레드). 팀 색은 아주 옅은 힌트로만 */
+    --bg:#f4f6f9; --card:#ffffff; --ink:#20262f; --muted:#6b7482; --faint:#9aa2b0;
+    --line:#e8ebf1; --line2:#f1f3f7;
+    --brand:#3b6ef5; --brand-ink:#2451d6; --brand-soft:#eef3ff;
+    --susubal:#3b6ef5; --susubal-bg:#eef3ff; --susubal-ln:#d5e0fb;
+    --design:#7b8496;  --design-bg:#eff1f5;  --design-ln:#dde1e9;
+    --consult:#b0893a; --consult-bg:#f7f2e7; --consult-ln:#ece0c6;
+    --ok:#2fae72; --ok-soft:#e9f8f0; --warn:#c9821a; --danger:#e5484d; --danger-bg:#fdeded;
+    --shadow:0 1px 2px rgba(20,30,50,.04), 0 3px 12px rgba(20,30,50,.05);
+    --radius:16px;
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    background:var(--bg); color:var(--ink); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    line-height:1.45; font-size:14px;
+  }
+  .app{max-width:1200px; margin:0 auto}
+  .main{padding:22px 26px 64px}
+
+  /* header + light nav */
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:18px}
+  .brand{display:flex; align-items:center; gap:11px}
+  .brand .logo{width:36px; height:36px; border-radius:10px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; font-size:14px}
+  .brand h1{font-size:19px; font-weight:800; letter-spacing:-.3px}
+  .brand p{font-size:11.5px; color:var(--muted); margin-top:1px}
+  .topright{display:flex; align-items:center; gap:12px}
+  .toggle{display:flex; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .toggle button{border:0; background:transparent; padding:8px 15px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer}
+  .toggle button.on{background:var(--brand); color:#fff}
+  .avatar{width:34px; height:34px; border-radius:50%; background:var(--brand-soft); display:grid; place-items:center; font-size:12px; font-weight:700; color:var(--brand-ink)}
+
+  /* section wrapper: 관련 내용을 큰 카드로 묶음 */
+  .section{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:16px}
+  .section > .sh{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px}
+  .section > .sh h2{font-size:14px; font-weight:800; letter-spacing:-.2px}
+  .section > .sh .sub{font-size:11.5px; color:var(--faint)}
+  .section > .sh .more{font-size:12px; color:var(--brand); cursor:pointer; font-weight:600}
+
+  /* KPI (라이트, 다크카드 제거) */
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+  @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+  .kpi .k{font-size:11.5px; color:var(--muted)}
+  .kpi .v{font-size:23px; font-weight:800; margin-top:4px; letter-spacing:-.5px; color:var(--ink)}
+  .kpi .v small{font-size:12px; font-weight:600; color:var(--muted)}
+  .kpi.accent .v{color:var(--brand-ink)} .kpi.alert .v{color:var(--danger)}
+  .kpi .bar{height:5px; border-radius:4px; background:var(--line); margin-top:9px; overflow:hidden}
+  .kpi .bar i{display:block; height:100%; border-radius:4px; background:var(--brand)}
+  .kpi.alert .bar i{background:var(--danger)}
+
+  /* thesis (슬림 한 줄) */
+  .thesis-lite{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--muted); padding:2px 2px 12px}
+  .thesis-lite b{color:var(--ink)}
+  .thesis-lite .pts{display:flex; gap:6px}
+  .thesis-lite .pts span{font-size:11px; font-weight:700; color:var(--brand-ink); background:var(--brand-soft); border-radius:20px; padding:2px 10px}
+
+  /* 흐름 */
+  .flow{display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow)}
+  .fstep{display:flex; align-items:center; gap:9px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12px}
+  .fstep b{font-size:12.5px} .fstep small{display:block; color:var(--faint); font-size:10.5px; margin-top:1px}
+  .fstep .fn{width:26px; height:26px; flex:0 0 auto; border-radius:8px; background:#e3e9f6; color:var(--brand-ink); font-weight:800; font-size:11px; display:grid; place-items:center}
+  .fstep.ai{background:var(--brand-soft); border-color:var(--brand-ln,var(--susubal-ln))} .fstep.ai .fn{background:var(--brand); color:#fff}
+  .farrow{align-self:center; color:var(--faint); font-weight:800}
+  .flow-cap{font-size:12px; color:var(--muted); margin:0 2px 16px} .flow-cap b{color:var(--ink)}
+
+  /* 자동화 카드 */
+  .autorow{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:800px){.autorow{grid-template-columns:1fr}}
+  .autocard{display:flex; flex-direction:column; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:13px 15px}
+  .autocard .ac-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .autocard b{font-size:13px}
+  .ac-desc{font-size:11.5px; color:var(--muted)} .ac-desc b{color:var(--ink)}
+  .live-pill{display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--ok); background:var(--ok-soft); border-radius:20px; padding:3px 10px; white-space:nowrap}
+  .live-pill i{width:7px; height:7px; border-radius:50%; background:var(--ok); animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,174,114,.5)}70%{box-shadow:0 0 0 6px rgba(47,174,114,0)}100%{box-shadow:0 0 0 0 rgba(47,174,114,0)}}
+  .ac-res{font-size:12px; margin-top:4px}
+  .ac-res .ar-top{font-weight:600} .ac-res .g{color:var(--ok)} .ac-res .r{color:var(--danger)}
+  .ac-res .ar-fls{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+  .ac-res .fl{font-size:10.5px; background:var(--danger-bg); color:#a8322a; border-radius:20px; padding:1px 8px} .ac-res .fl b{color:var(--danger)}
+  /* 실시간 로그 */
+  .live-feed-h{margin-top:14px; font-size:12px; font-weight:700} .live-feed-h span{font-weight:400; color:var(--faint)}
+  .live-feed{margin-top:8px; display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .feed-row{display:flex; align-items:center; gap:10px; padding:8px 12px; font-size:12px; border-bottom:1px solid var(--line2); animation:fadein .4s}
+  .feed-row:last-child{border-bottom:0}
+  .feed-row .ft{color:var(--faint); font-variant-numeric:tabular-nums; flex:0 0 auto}
+  .feed-row .fe{color:var(--ink)}
+  .feed-row.hold .fe{color:var(--danger)} .feed-row.move .fe{color:var(--brand-ink)} .feed-row.in .fe{color:var(--ok)}
+  @keyframes fadein{from{opacity:0; transform:translateY(-4px)}to{opacity:1; transform:none}}
+  .ab-btn{border:0; background:var(--brand); color:#fff; font-weight:700; font-size:12.5px; padding:9px 16px; border-radius:9px; cursor:pointer; white-space:nowrap}
+  .ab-btn:hover{background:var(--brand-ink)}
+
+  /* 상태별 막대 차트 */
+  #stagechart{display:flex; flex-direction:column; gap:9px}
+  .sbar{display:grid; grid-template-columns:150px 1fr 96px; align-items:center; gap:12px; cursor:pointer; padding:2px 0}
+  .sbar:hover .sbl{color:var(--brand-ink)}
+  .sbl{font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:7px; white-space:nowrap}
+  .sdot{width:9px; height:9px; border-radius:3px; flex:0 0 auto}
+  .strack{height:16px; background:var(--line2); border-radius:8px; overflow:hidden}
+  .strack i{display:block; height:100%; border-radius:8px; transition:width .3s}
+  .sval{font-size:12.5px; font-weight:700; text-align:right} .sval em{font-style:normal; font-size:11px; color:var(--danger); font-weight:700}
+  .stage-legend{display:flex; gap:16px; margin-top:6px; font-size:11px; color:var(--muted)}
+  .stage-legend i{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+  /* 인사이트 3분할 */
+  .insight{display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px}
+  @media(max-width:960px){.insight{grid-template-columns:1fr}}
+  .ip h3{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:10px}
+  .ip .donutwrap{flex-direction:column; align-items:flex-start; gap:12px}
+  .ip .legend{width:100%}
+  /* 상담 사유 막대 */
+  .consult-list{display:flex; flex-direction:column; gap:8px}
+  .cbar{display:grid; grid-template-columns:78px 1fr 22px; align-items:center; gap:8px; cursor:pointer; font-size:11.5px}
+  .cbar:hover .cl{color:var(--brand-ink)}
+  .cbar .cl{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cbar .ctrack{height:12px; background:var(--line2); border-radius:6px; overflow:hidden}
+  .cbar .ctrack i{display:block; height:100%; background:var(--consult); border-radius:6px}
+  .cbar .cn{font-weight:700; text-align:right; color:var(--muted)}
+
+  /* 사고 예방 맵 (간결) */
+  .riskmap{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px}
+  .risk{border:1px solid var(--line); border-radius:11px; padding:11px 12px; background:var(--bg); cursor:pointer; transition:border-color .12s, box-shadow .12s; position:relative}
+  .risk:hover{border-color:var(--brand); box-shadow:0 2px 10px rgba(59,110,245,.1)}
+  .risk .rgo{font-size:10.5px; color:var(--brand); font-weight:700; margin-top:6px; opacity:0; transition:opacity .12s}
+  .risk:hover .rgo{opacity:1}
+  .risk .rh{font-size:12.5px; font-weight:700; display:flex; align-items:center; gap:7px}
+  .risk .rc{font-size:10px; font-weight:800; background:var(--ink); color:#fff; border-radius:5px; padding:1px 6px}
+  .risk .rg{font-size:11px; font-weight:700; padding:4px 8px; border-radius:7px; display:inline-block; margin-top:8px; background:var(--brand-soft); color:var(--brand-ink)}
+
+  /* dashboard 2-column grid */
+  .dashgrid{display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start}
+  @media(max-width:1100px){.dashgrid{grid-template-columns:1fr}}
+  .col-left{display:flex; flex-direction:column; gap:14px}
+  .col-right{display:flex; flex-direction:column; gap:14px}
+  .card-lite{background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow)}
+  .card-lite .lh{padding:13px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line2)}
+  .card-lite .lh h3{font-size:13.5px; font-weight:700}
+  .card-lite .lh .more{font-size:11.5px; color:var(--brand); cursor:pointer; font-weight:600}
+  .card-lite .lb{padding:14px 16px}
+
+  /* donut */
+  .donutwrap{display:flex; align-items:center; gap:16px}
+  .donut{flex:0 0 auto}
+  .donut-center{font-size:20px; font-weight:800; fill:var(--ink)}
+  .donut-sub{font-size:9px; fill:var(--faint)}
+  .legend{display:flex; flex-direction:column; gap:5px; flex:1}
+  .legend .li{display:flex; align-items:center; gap:7px; font-size:11.5px; cursor:pointer; padding:1px 0}
+  .legend .li:hover{color:var(--brand)}
+  .legend .sw{width:9px; height:9px; border-radius:3px; flex:0 0 auto}
+  .legend .ln{flex:1; color:var(--ink)} .legend .lc{font-weight:700; color:var(--muted)}
+
+  /* transaction-style imminent list */
+  .translist{display:flex; flex-direction:column}
+  .tl-item{display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--line2); cursor:pointer}
+  .tl-item:last-child{border-bottom:0}
+  .tl-item:hover{background:#f9fbff}
+  .tl-ic{width:34px; height:34px; border-radius:11px; flex:0 0 auto; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff}
+  .tl-main{flex:1; min-width:0}
+  .tl-main .t1{font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tl-main .t2{font-size:11px; color:var(--faint)}
+  .tl-empty{color:var(--faint); font-size:12px; text-align:center; padding:16px}
+
+  /* 업무 흐름 안내 */
+  .flow{display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow)}
+  .fstep{display:flex; align-items:center; gap:9px; background:#f6f8fc; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12px}
+  .fstep b{font-size:12.5px} .fstep small{display:block; color:var(--faint); font-size:10.5px; margin-top:1px}
+  .fstep .fn{width:26px; height:26px; flex:0 0 auto; border-radius:8px; background:#e6ecf7; color:var(--brand-ink); font-weight:800; font-size:11px; display:grid; place-items:center}
+  .fstep.ai{background:#eef3ff; border-color:var(--accent-dim)} .fstep.ai .fn{background:var(--brand); color:#fff}
+  .fstep.br{background:#fff}
+  .farrow{align-self:center; color:var(--faint); font-weight:800}
+  .flow-cap{font-size:12px; color:var(--muted); margin:0 2px 16px}
+  .flow-cap b{color:var(--ink)}
+
+  /* 자동 처리 바 (색 절제: 흰 카드 + 좌측 액센트) */
+  .autobar{display:flex; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap; background:#fff; border:1px solid var(--line); color:var(--ink); border-radius:12px; padding:13px 16px; margin-bottom:10px; box-shadow:var(--shadow)}
+  .ab-l b{font-size:13.5px} .ab-l span{display:block; font-size:11.5px; color:var(--muted); margin-top:3px; max-width:840px} .ab-l span b{color:var(--ink)}
+  .ab-btn{border:0; background:var(--brand); color:#fff; font-weight:700; font-size:13px; padding:10px 16px; border-radius:10px; cursor:pointer; white-space:nowrap}
+  .ab-btn:hover{background:#1e40af}
+  .auto-res{background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 14px; margin-bottom:14px}
+  .auto-res .ar-top{font-size:13px} .auto-res .g{color:var(--ok)} .auto-res .r{color:var(--danger)}
+  .auto-res .ar-fls{font-size:11.5px; color:var(--muted); margin-top:6px; display:flex; gap:8px; flex-wrap:wrap}
+  .auto-res .fl{background:var(--danger-bg); color:#a8322a; border-radius:20px; padding:2px 9px} .auto-res .fl b{color:var(--danger)}
+  .held-btn{margin-top:11px; border:1px solid var(--brand); background:var(--brand-soft); color:var(--brand-ink); font-weight:700; font-size:12.5px; padding:8px 14px; border-radius:9px; cursor:pointer}
+  .held-btn:hover{background:var(--brand); color:#fff}
+  .held-note{display:inline-flex; align-items:center; gap:7px; background:var(--danger-bg); color:#a8322a; border-radius:20px; padding:2px 10px; font-weight:700}
+  .held-note button{border:0; background:var(--brand); color:#fff; border-radius:14px; font-size:11px; font-weight:700; padding:2px 9px; cursor:pointer}
+  .rmchip{display:inline-block; background:#eef1f6; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:1px 9px; font-size:10.5px; margin-left:4px}
+  .triage-panel{margin-top:14px}
+  .triage-panel.okp{border-color:var(--susubal-ln)} .triage-panel.okp .ph{background:#eef9f2; color:#1f7a4d}
+  .triage-panel.blockp{border-color:#f2b6b0} .triage-panel.blockp .ph{background:var(--danger-bg); color:#b1281e}
+  .triage-panel .gate-items{max-width:760px}
+  .triage-panel .gstat{background:#8a63c9}
+  .triage-panel .gitem.pass .gstat{background:var(--ok)} .triage-panel .gitem.fail .gstat{background:var(--danger)}
+  .gok{color:var(--ok); font-weight:800; font-size:12px} .gng{color:var(--danger); font-weight:800; font-size:11.5px}
+  .mismatch{display:inline-block; color:var(--danger); background:var(--danger-bg); border:1px solid #f2b6b0; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700; margin-left:8px}
+  .steer{background:#fbf5e3; border:1px solid var(--consult-ln); border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px}
+  .steer.held{background:#eef9f2; border-color:var(--susubal-ln); color:#1f7a4d; font-weight:600}
+  .steer-act{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap}
+  .steer-act button{border:0; background:var(--brand); color:#fff; border-radius:7px; font-size:11.5px; font-weight:700; padding:5px 10px; cursor:pointer}
+  .steer-act button.ghost{background:#fff; color:var(--muted); border:1px solid var(--line)}
+  .steer.expired{background:var(--danger-bg); border-color:#f2b6b0; color:#a8322a}
+  .rtags{margin-top:5px; display:flex; gap:4px; flex-wrap:wrap}
+  .rtag{font-size:10px; font-weight:700; background:var(--consult-bg); color:#8a6a12; border:1px solid var(--consult-ln); border-radius:20px; padding:1px 7px}
+  .consult-list{display:flex; flex-direction:column; gap:6px}
+  .consult-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; cursor:pointer; font-size:12px}
+  .consult-row:hover{border-color:var(--consult); background:var(--consult-bg)}
+  .consult-row .cn{font-weight:800; color:#8a6a12}
+
+  .notice{background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 14px; margin-bottom:16px}
+  .notice b{color:var(--danger); font-size:12px; letter-spacing:.2px}
+  .notice ul{margin:5px 0 0 2px; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px}
+  .notice li{font-size:12.5px; color:var(--ink); padding-left:14px; position:relative}
+  .notice li::before{content:"·"; position:absolute; left:0; color:var(--muted); font-size:12px; top:2px}
+
+  /* team zones */
+  .zones{display:grid; grid-template-columns:1.7fr 1.1fr 0.9fr; gap:14px; align-items:start}
+  @media(max-width:1000px){.zones{grid-template-columns:1fr} .kpis{grid-template-columns:repeat(2,1fr)}}
+  .zone{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); overflow:hidden}
+  .zone-head{padding:12px 15px; display:flex; align-items:center; gap:9px; border-bottom:1px solid var(--line)}
+  .zone-head .tag{font-size:12px; font-weight:800; padding:3px 10px; border-radius:20px}
+  .zone-head .role{font-size:11.5px; color:var(--muted)}
+  .zone.susubal .zone-head{background:var(--susubal-bg)} .zone.susubal .tag{background:var(--susubal); color:#fff}
+  .zone.design .zone-head{background:var(--design-bg)}  .zone.design .tag{background:var(--design); color:#fff}
+  .zone.consult .zone-head{background:var(--consult-bg)} .zone.consult .tag{background:var(--consult); color:#fff}
+  .tiles{padding:13px; display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px}
+  .tile{border:1px solid var(--line); border-radius:11px; padding:11px 12px; cursor:pointer; background:#fff; transition:border-color .12s, transform .04s, box-shadow .12s; position:relative}
+  .tile:hover{border-color:var(--brand); box-shadow:0 3px 10px rgba(43,91,215,.12)}
+  .tile:active{transform:translateY(1px)}
+  .tile .step{font-size:10px; color:var(--faint); font-weight:700}
+  .tile .name{font-size:12.5px; font-weight:600; margin-top:1px}
+  .tile .cnt{font-size:23px; font-weight:800; margin-top:6px; letter-spacing:-.5px}
+  .tile .cnt small{font-size:12px; color:var(--muted); font-weight:600; margin-left:2px}
+  .tile .imminent{margin-top:6px; display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; color:var(--danger); background:var(--danger-bg); padding:2px 7px; border-radius:20px}
+  .tile .imminent.none{color:var(--faint); background:var(--line2)}
+  .zone-foot{padding:9px 15px; border-top:1px dashed var(--line); font-size:11px; color:var(--muted)}
+
+  .handoff{grid-column:1/-1; display:flex; align-items:center; gap:8px; justify-content:center; color:var(--muted); font-size:11.5px; margin-top:2px}
+  .handoff .pill{background:#fff; border:1px dashed var(--warn); color:#a9691a; border-radius:20px; padding:3px 11px; font-weight:600}
+
+  /* list view */
+  .listview{display:none}
+  .listbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+  .back{border:1px solid var(--line); background:#fff; border-radius:9px; padding:7px 13px; font-weight:600; font-size:13px; cursor:pointer; color:var(--ink)}
+  .listbar select{border:1px solid var(--line); background:#fff; border-radius:9px; padding:7px 10px; font-size:12.5px; color:var(--ink)}
+  .listbar .count{margin-left:auto; font-size:12.5px; color:var(--muted)}
+  .listbar .count b{color:var(--ink)}
+  .tablecard{background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  thead th{background:#f6f8fc; text-align:left; padding:10px 12px; font-size:11.5px; color:var(--muted); font-weight:700; border-bottom:1px solid var(--line); white-space:nowrap}
+  tbody td{padding:10px 12px; border-bottom:1px solid var(--line2); vertical-align:top}
+  tbody tr:hover{background:#f9fbff}
+  .oid{font-weight:700; color:var(--brand-ink)}
+  .sub{color:var(--faint); font-size:11px}
+  .owner{display:inline-flex; flex-direction:column; gap:2px}
+  .badge{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:6px; border:1px solid var(--line); background:#f6f8fc; color:var(--muted)}
+  .badge.su{background:var(--susubal-bg); color:#1f7a4d; border-color:var(--susubal-ln)}
+  .badge.de{background:var(--design-bg); color:#b03b7c; border-color:var(--design-ln)}
+  .prints{display:flex; flex-direction:column; gap:3px}
+  .prints .p{display:flex; justify-content:space-between; gap:10px}
+  .prints .pm{color:var(--ink)} .prints .pa{color:var(--muted); white-space:nowrap}
+  .prints .none{color:var(--faint)}
+  .dday{font-weight:800; font-size:11.5px; padding:2px 8px; border-radius:7px; white-space:nowrap; display:inline-block}
+  .dday.over{background:var(--danger-bg); color:#b1281e; border:1px solid #f2b6b0}
+  .dday.danger{background:var(--danger-bg); color:#c02a20}
+  .dday.warn{background:#fdf1df; color:#9a5e10}
+  .dday.ok{background:#eef4ff; color:#3358b8}
+  .misu{font-weight:700}
+  .misu.pos{color:var(--danger)} .misu.neg{color:var(--susubal)} .misu.zero{color:var(--faint)}
+  .stat{font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap}
+
+  /* detail view */
+  .detailview{display:none}
+  .detailbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+  .detailbar h2{font-size:15px; font-weight:800}
+  .detailbar .docbtns{margin-left:auto; display:flex; gap:6px; flex-wrap:wrap}
+  .docbtn{border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 10px; font-size:11.5px; color:var(--muted); cursor:default}
+  .detailgrid{display:grid; grid-template-columns:230px 250px 1fr; gap:14px; align-items:start}
+  @media(max-width:1050px){.detailgrid{grid-template-columns:1fr}}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
+  .panel .ph{padding:10px 13px; border-bottom:1px solid var(--line); font-size:12px; font-weight:700; color:var(--muted); background:#f6f8fc}
+  .panel .pb{padding:12px 13px}
+  .field{display:flex; flex-direction:column; gap:3px; margin-bottom:11px}
+  .field .lab{font-size:11px; color:var(--faint)}
+  .field .val{font-size:13px; font-weight:600; display:flex; align-items:center; gap:7px}
+  .chgbtn{border:1px solid var(--brand); color:var(--brand); background:#fff; border-radius:6px; font-size:10.5px; padding:1px 7px; cursor:pointer; font-weight:600}
+  .memotabs{display:flex; gap:6px; margin-bottom:9px}
+  .memotabs button{border:1px solid var(--line); background:#fff; border-radius:7px; padding:4px 12px; font-size:12px; cursor:pointer; color:var(--muted)}
+  .memotabs button.on{background:var(--brand); color:#fff; border-color:var(--brand)}
+  .memobox textarea{width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:12.5px; font-family:inherit; resize:vertical; min-height:52px}
+  .memobox .savebtn{margin-top:6px; width:100%; border:0; background:var(--brand); color:#fff; border-radius:8px; padding:7px; font-weight:600; cursor:pointer; font-size:12.5px}
+  .memolist{margin-top:11px; display:flex; flex-direction:column; gap:8px}
+  .memo{background:#fffdf3; border:1px solid #f0e6c0; border-radius:8px; padding:8px 10px}
+  .memo .mt{font-size:10.5px; color:var(--faint); margin-bottom:3px}
+  .memo .mtext{font-size:12.5px; white-space:pre-wrap}
+  .memolist .empty{color:var(--faint); font-size:12px; text-align:center; padding:10px}
+  /* 검증 탭 (감사 로그 + 재검증) */
+  .verify-wrap .empty{color:var(--faint); font-size:12px; padding:8px}
+  .v-sec{font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.2px; margin-bottom:7px}
+  .audit-row{display:flex; gap:9px; padding:6px 0; border-bottom:1px solid var(--line2); font-size:11.5px}
+  .audit-row:last-of-type{border-bottom:0}
+  .audit-row .mt{color:var(--faint); flex:0 0 auto; font-variant-numeric:tabular-nums}
+  .audit-row .atext{color:var(--ink)}
+  .verify-note{font-size:11.5px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:9px}
+  .verify-note.ok{background:var(--ok-soft); border-color:var(--susubal-ln); color:#1f7a4d}
+  .verify-note.bad{background:var(--danger-bg); border-color:#f2b6b0; color:#a8322a}
+  .verify-note b{color:inherit}
+
+  .opt table{font-size:12px}
+  .opt thead th{background:#f0f3fa}
+  .opt .num{text-align:right; white-space:nowrap}
+  .opt tfoot td{font-weight:700; background:#f6f8fc; border-top:2px solid var(--line)}
+  .sec-title{font-size:12px; font-weight:700; margin:14px 0 7px; color:var(--brand-ink)}
+  .pinput{width:78px; text-align:right; border:1px solid var(--line); border-radius:6px; padding:4px 6px; font-size:12px; font-family:inherit}
+  .pinput.red{border-color:#f0b8b3; background:#fff6f5}   /* 빨간창=장당단가(개당) */
+  .pinput.bad{border-color:var(--danger); background:var(--danger-bg); font-weight:700}
+  .guide{font-size:11px; color:var(--muted)}
+  .guide b{color:var(--brand-ink)}
+  .mini{border:1px solid var(--brand); color:var(--brand); background:#fff; border-radius:6px; font-size:10.5px; padding:1px 7px; margin-left:6px; cursor:pointer; font-weight:600}
+  .rate-guide{border:1px solid var(--line); border-radius:10px; padding:9px 11px; margin-bottom:10px; background:#f8fafd}
+  .rg-title{font-size:11.5px; font-weight:700; margin-bottom:6px} .rg-title span{font-weight:400; color:var(--faint)}
+  .rg-tbl{font-size:11px} .rg-tbl th{background:transparent; padding:3px 8px; color:var(--faint)} .rg-tbl td{padding:3px 8px; border-bottom:0}
+  .rg-note{font-size:10.5px; color:var(--faint); margin-top:6px}
+  .psel{border:1px solid var(--line); border-radius:6px; padding:3px 5px; font-size:11.5px; font-family:inherit; background:#fff}
+  .psel.sm{width:52px; margin-left:3px}
+  .qty-in{width:56px; text-align:right; border:1px solid var(--line); border-radius:6px; padding:4px 6px; font-size:12px; font-family:inherit}
+  .warnrow{background:var(--danger-bg)!important}
+  .warnmsg{color:var(--danger); font-size:11.5px; font-weight:600; margin-top:3px}
+  .totrow td{font-size:13px}
+  .grand{font-size:15px; color:var(--brand-ink)}
+
+  /* thesis banner */
+  .thesis{background:linear-gradient(100deg,#26323f,#33465a); color:#fff; border-radius:16px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; box-shadow:var(--shadow)}
+  .th-title{font-size:16px; font-weight:800; letter-spacing:-.3px}
+  .th-title s{color:#93a2b3; text-decoration-thickness:2px}
+  .th-title b{color:#7fe3ad}
+  .th-sub{font-size:12px; color:#b4c1d0; margin-top:5px; max-width:760px; line-height:1.5}
+  .thesis-r{display:flex; gap:7px; flex-wrap:wrap}
+  .mtag{font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap}
+  .mtag.m1{background:rgba(63,174,114,.2); color:#7fe3ad} .mtag.m2{background:rgba(224,106,166,.22); color:#f6a8cd} .mtag.m3{background:rgba(232,144,27,.22); color:#f7c47a}
+
+  /* risk map */
+  .riskmap{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:11px}
+  .risk{border:1px solid var(--line); border-radius:11px; padding:11px 13px; background:#fbfcfe}
+  .risk .rh{font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px}
+  .risk .rc{font-size:10.5px; font-weight:800; background:#26323f; color:#fff; border-radius:6px; padding:1px 6px}
+  .risk .rd{font-size:11.5px; color:var(--muted); margin:5px 0 8px; line-height:1.45}
+  .risk .rg{font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; display:inline-block}
+  .rg.m1{background:var(--susubal-bg); color:#1f7a4d} .rg.m2{background:var(--design-bg); color:#b03b7c} .rg.m3{background:#fdf1df; color:#9a5e10}
+
+  /* warn variant for M3 */
+  .warnmsg.warn{color:var(--warn)}
+
+  /* modal (M2 gate) */
+  .modal-back{display:none; position:fixed; inset:0; background:rgba(15,20,30,.5); z-index:50; align-items:center; justify-content:center; padding:20px}
+  .modal{background:#fff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden}
+  .modal-h{padding:15px 18px; font-size:14px; font-weight:800; border-bottom:1px solid var(--line); background:#f6f8fc}
+  .modal-b{padding:16px 18px}
+  .gate-flow{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .gate-flow .arrow{color:var(--faint); font-weight:800}
+  .gate-flow .nx{font-size:12px}
+  .gate-desc{font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5}
+  .gate-items{display:flex; flex-direction:column; gap:8px}
+  .gitem{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:13px}
+  .gitem .gstat{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; font-size:13px; font-weight:800; color:#fff}
+  .gitem .gtext{flex:1; display:flex; flex-direction:column; gap:1px}
+  .gitem .gdetail{font-size:11px; color:var(--muted)}
+  .gitem.pass{border-color:var(--susubal-ln); background:#f1faf5}
+  .gitem.pass .gstat{background:var(--ok)}
+  .gitem.fail{border-color:#f2b6b0; background:var(--danger-bg)}
+  .gitem.fail .gstat{background:var(--danger)}
+  .gitem.fail .gdetail{color:var(--danger); font-weight:600}
+  .gfix{border:0; background:var(--danger); color:#fff; border-radius:7px; font-size:11px; font-weight:700; padding:5px 10px; cursor:pointer; white-space:nowrap}
+  .gate-prog{margin-top:12px; font-size:12px; font-weight:700; color:var(--danger)}
+  .gate-prog.ok{color:var(--ok)}
+  .gate-actions{margin-top:14px; display:flex; gap:8px}
+  .gbtn{flex:1; border:0; border-radius:10px; padding:10px; font-weight:700; font-size:13px; cursor:pointer}
+  .gbtn.cancel{background:#eef1f6; color:var(--muted)}
+  .gbtn.confirm{background:var(--ok); color:#fff}
+  .gbtn.confirm:disabled{background:#e6e9ef; color:#aab; cursor:not-allowed}
+  .chgbtn.gate{border-color:var(--design); color:var(--design)}
+  /* 진행상태 셀렉트 + 인라인 게이트 */
+  .stagesel{border:1px solid var(--brand); border-radius:8px; padding:7px 9px; font-size:12.5px; font-weight:700; color:var(--brand-ink); background:#fff; width:100%; cursor:pointer}
+  .gate-panel{margin-top:14px}
+  .gate-panel.okp{border-color:var(--susubal-ln)} .gate-panel.okp .ph{background:#eef9f2; color:#1f7a4d}
+  .gate-panel.blockp{border-color:#f2b6b0} .gate-panel.blockp .ph{background:var(--danger-bg); color:#b1281e}
+  .gate-panel .gate-items{max-width:720px}
+  .gate-panel .gate-desc{margin-bottom:12px; font-size:12.5px; color:var(--muted)}
+
+  /* 안내 토스트 */
+  .toast{position:fixed; left:50%; bottom:26px; transform:translate(-50%, 20px); background:#20262f; color:#fff; font-size:13px; font-weight:600; padding:11px 18px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:80; max-width:90vw}
+  .toast.show{opacity:1; transform:translate(-50%, 0)}
+
+  footer{margin-top:22px; color:var(--faint); font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">HI</div>
+      <div>
+        <h1>단체복 주문 관리</h1>
+        <p>반복업무 사고 예방 · 자동화 시스템 · 가상 샘플</p>
+      </div>
+    </div>
+    <div class="topright">
+      <div class="toggle">
+        <button id="tab-dash" class="on" onclick="showDash()">대시보드</button>
+        <button id="tab-list" onclick="showList('전체')">주문내역</button>
+      </div>
+      <div class="avatar">관리</div>
+    </div>
+  </header>
+
+  <!-- ===================== 대시보드 뷰 ===================== -->
+  <section id="dashview">
+    <div class="thesis-lite">
+      <span>사람이 기억하던 확인을 <b>시스템이 관문에서 자동 차단</b> · 반복 사고 7종 예방</span>
+      <span class="pts"><span>M1 추적</span><span>M2 게이트</span><span>M3 검증</span></span>
+    </div>
+
+    <!-- 업무 흐름 -->
+    <div class="flow">
+      <div class="fstep"><span class="fn">1</span><div><b>신규 접수</b><small>미처리·버퍼</small></div></div>
+      <span class="farrow">→</span>
+      <div class="fstep ai"><span class="fn">AI</span><div><b>자동 분류·검증</b><small>14단계</small></div></div>
+      <span class="farrow">→</span>
+      <div class="fstep br"><div><b>정상</b> → 시안/결제 이관<br><b>문제</b> → 상담진행</div></div>
+      <span class="farrow">→</span>
+      <div class="fstep"><div><b>결제 → 제작 → 발송</b><small>단계별 자동 게이트</small></div></div>
+    </div>
+    <div class="flow-cap">‘미처리’는 자동 분류가 비웁니다. 사람은 <b>상담·시안·결제·제작</b>만 봅니다.</div>
+
+    <!-- 핵심 지표 -->
+    <div class="section">
+      <div class="sh"><h2>핵심 지표</h2><span class="sub">가상 샘플 기준</span></div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+
+    <!-- 자동화 (버튼 없이 상시 자동 · 실시간) -->
+    <div class="section">
+      <div class="sh"><h2>업무 자동화</h2><span class="sub">신규 주문은 접수 즉시 자동 분류 · 사람은 예외만</span></div>
+      <div class="autorow">
+        <div class="autocard">
+          <div class="ac-head"><b>주문접수 자동 분류</b><span class="live-pill"><i></i>실시간 ON</span></div>
+          <div class="ac-desc">신규 주문 접수 <b>즉시</b> 14단계 검증 → 정상 이관 / 문제 상담</div>
+          <div class="ac-res" id="triage-result"></div>
+        </div>
+        <div class="autocard">
+          <div class="ac-head"><b>진행단계 자동 처리</b><span class="live-pill"><i></i>자동 ON</span></div>
+          <div class="ac-desc">관문 통과 건 <b>자동 진행</b> · 문제 건 자동 보류</div>
+          <div class="ac-res" id="process-result"></div>
+        </div>
+      </div>
+      <div class="live-feed-h">실시간 자동 처리 로그 <span>· 신규 접수가 들어오는 즉시 분류됩니다 (시뮬레이션)</span></div>
+      <div class="live-feed" id="live-feed"></div>
+    </div>
+
+    <!-- 상태별 현황 (막대 차트) -->
+    <div class="section">
+      <div class="sh"><h2>상태별 주문 현황</h2><span class="more" onclick="showList('전체')">주문내역 전체 ▸</span></div>
+      <div id="stagechart"></div>
+    </div>
+
+    <!-- 인사이트 -->
+    <div class="section">
+      <div class="sh"><h2>현황 인사이트</h2><span class="sub">클릭 시 해당 목록으로</span></div>
+      <div class="insight">
+        <div class="ip"><h3>상태 분포</h3><div class="donutwrap" id="donutwrap"></div></div>
+        <div class="ip"><h3>납기 임박</h3><div class="translist" id="translist"></div></div>
+        <div class="ip"><h3>상담 대기 · 사유별</h3><div class="consult-list" id="consult-list"></div></div>
+      </div>
+    </div>
+
+    <!-- 사고 예방 맵 -->
+    <div class="section">
+      <div class="sh"><h2>사고 예방 맵</h2><span class="sub">반복 사고 7종 → 방어 장치</span></div>
+      <div class="riskmap">
+        <div class="risk" onclick="showGuard('S1')"><div class="rh"><span class="rc">S1</span>핸드오프 누락</div><div class="rg m2">M2 게이트</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S2')"><div class="rh"><span class="rc">S2</span>견적·단가 오류</div><div class="rg m3">M3 자릿수 검증</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S3')"><div class="rh"><span class="rc">S3</span>결제·미수금</div><div class="rg m1">미수금 표기+게이트</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S4')"><div class="rh"><span class="rc">S4</span>공급처 파편화</div><div class="rg m2">공급처 입력 필수</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S5')"><div class="rh"><span class="rc">S5</span>재고·납기</div><div class="rg m1">D-day 경고</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S6')"><div class="rh"><span class="rc">S6</span>인쇄방식 매칭</div><div class="rg m3">위치↔크기 교차검증</div><div class="rgo">눌러서 보기 ▸</div></div>
+        <div class="risk" onclick="showGuard('S7')"><div class="rh"><span class="rc">S7</span>인쇄 사고</div><div class="rg m2">발주전표·파일명</div><div class="rgo">눌러서 보기 ▸</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 주문내역 리스트 뷰 ===================== -->
+  <section class="listview" id="listview">
+    <div class="listbar">
+      <button class="back" onclick="showDash()">← 대시보드</button>
+      <label>상태
+        <select id="f-stage" onchange="renderList()"></select>
+      </label>
+      <label>진행담당자
+        <select id="f-staff" onchange="renderList()"></select>
+      </label>
+      <label>디자이너
+        <select id="f-designer" onchange="renderList()"></select>
+      </label>
+      <label>정렬
+        <select id="f-sort" onchange="renderList()">
+          <option value="dday">납기 임박순</option>
+          <option value="misu">미수금 큰 순</option>
+          <option value="quote">견적 큰 순</option>
+        </select>
+      </label>
+      <span class="count" id="listcount"></span>
+    </div>
+    <div class="tablecard">
+      <table>
+        <thead>
+          <tr>
+            <th>주문번호 / 행사</th><th>상태</th><th>담당 / 디자이너</th>
+            <th>인쇄방법 · 금액</th><th>수량</th><th>납품약속일</th><th>견적 합계</th><th>미수금</th>
+          </tr>
+        </thead>
+        <tbody id="listbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== 상세주문내역 뷰 ===================== -->
+  <section class="detailview" id="detailview">
+    <div class="detailbar">
+      <button class="back" onclick="showList()">← 주문내역</button>
+      <h2 id="d-title">상세주문내역</h2>
+      <div class="docbtns">
+        <span class="docbtn">견적서</span><span class="docbtn">견적영수증</span>
+        <span class="docbtn">거래명세표</span><span class="docbtn">결제서작성</span>
+        <span class="docbtn">상품추가</span>
+      </div>
+    </div>
+    <div class="detailgrid" id="detailgrid"></div>
+    <div id="triage-inline"></div>
+    <div id="gate-inline"></div>
+  </section>
+
+  <footer id="foot"></footer>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* =========================================================
+   [기획 컨텍스트] 표준 상태 + 담당팀 매핑 (매뉴얼 p13 반영)
+   인쇄O: 미처리→상담진행→시안요청→시안등록(4-1)→수정요청(4-2)→결제요청→입금완료→상품준비중
+   인쇄X: 미처리→결제요청→입금완료→상품준비중 (시안 단계 건너뜀)
+   담당팀: 수발주팀(진행담당자) / 디자인팀(디자이너) / 컨설팅팀(상담사)
+   ========================================================= */
+const TEAMS = {
+  susubal:{ name:"수발주팀", role:"주문건 총괄 진행담당자", cls:"susubal" },
+  design: { name:"디자인팀", role:"주문건별 시안 작업 디자이너", cls:"design" },
+  consult:{ name:"컨설팅팀", role:"고객문의 답변 상담사", cls:"consult" }
+};
+const STAGES = [
+  { key:"미처리",     step:"1",   team:"susubal", desc:"진행담당자 미배정" },
+  { key:"상담진행",   step:"2",   team:"susubal", desc:"배정됐으나 보류(연락부재·파일미첨부)" },
+  { key:"시안요청",   step:"3",   team:"design",  desc:"디자이너 시안 작업 중" },
+  { key:"시안등록",   step:"4-1", team:"design",  desc:"시안 등록 완료" },
+  { key:"수정요청",   step:"4-2", team:"design",  desc:"고객 시안 수정 요청" },
+  { key:"결제요청",   step:"5",   team:"susubal", desc:"시안 확정, 결제 전" },
+  { key:"입금완료",   step:"6",   team:"susubal", desc:"입금 완료, 발주 전" },
+  { key:"상품준비중", step:"7",   team:"susubal", desc:"발주 완료, 준비중" }
+];
+const STAGE_KEYS = STAGES.map(s => s.key);
+const stageOf = k => STAGES.find(s => s.key === k);
+/* 상세에서 선택 가능한 전체 상태(터미널 포함) + 메타 */
+const EXTRA_META = { "발송완료":{step:"8", team:"susubal"}, "취소":{step:"-", team:"cancel"} };
+const ALL_STAGES = [...STAGE_KEYS, "발송완료", "취소"];
+const stageMeta = k => stageOf(k) || EXTRA_META[k] || { step:"", team:"susubal" };
+
+/* ---- 가상 샘플 주문 생성 (볼륨 실감용, 시드 고정 재현성) ----
+   실제 거래처·단가·실명 아님. 매뉴얼처럼 상태별 건수 편차를 둠 */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rnd = mulberry32(20260724);
+const pick = arr => arr[Math.floor(rnd()*arr.length)];
+const EVENTS = ["체육대회 반티","워크샵 후드","동아리 MT 맨투맨","수련회 티셔츠","학급 단체티","창립기념 폴로","오픈 유니폼","축제 반티","봉사단 조끼","근무복","동호회 유니폼","행사 스텝 티","기념품 티","팀 후드","반 티셔츠"];
+const CLIENTS = ["익명 고객사 A","익명 고객사 B","익명 학교 C","익명 동아리 D","익명 단체 E","익명 고객사 F","익명 학교 G","익명 기업 H"];
+const GARMENTS = ["라운드 티","맨투맨","후드집업","드라이 티","카라 티","기능성 티","오버핏 티","조끼","셔츠"];
+const STAFFS = ["진행 J","진행 L","진행 M","진행 P","진행 S"];
+const DESIGNERS = ["디자이너 K","디자이너 P","디자이너 Y","디자이너 H"];
+const PRINT_METHODS = ["나염","전사","패딩나염","모자나염","자수"];   // 매뉴얼 p10 인쇄 종류 전체
+const PRINT_SIZES = ["소","대","특대"];
+const POS = ["앞","뒤","좌흉","소매","등판"];
+/* 인쇄위치 → 표준 인쇄크기 (좌흉·소매=소형, 앞·뒤=대형, 등판=특대). 위치와 크기가 어긋나면 견적 사고 */
+const POS_SIZE = { "좌흉":"소", "소매":"소", "앞":"대", "뒤":"대", "등판":"특대" };
+function printMismatch(o){   // 견적 위치 ↔ 선택 크기 모순 감지
+  if(!o.printYN) return null;
+  for(const p of o.prints){
+    const exp = POS_SIZE[p.pos];
+    if(exp && exp !== p.size) return `${p.pos}(표준 ${exp}형)인데 ${p.size}형 선택 - 견적·인쇄 불일치`;
+  }
+  return null;
+}
+function printFlagMismatch(o){   // 인쇄 유무 ↔ 인쇄내용 모순 감지
+  if(!o.printYN && o.printMemo) return `인쇄 '없음' 체크인데 인쇄메모 존재: "${o.printMemo}"`;
+  if(o.printYN && o.prints.length===0) return "인쇄 '있음'인데 인쇄내용 미입력";
+  return null;
+}
+/* ===== 매뉴얼 p10 실제 단가표 (1도 기준) =====
+   나염·패딩나염·자수: {판:판비(일괄, 임계 미만), 장:장당(임계 이상)} · 나염류 임계 100벌, 자수 30장
+   전사: 장당(수량 구간별) · 모자나염: ~50장 44,000 / 51장~ 44,000+(수량-50)×440 */
+const PRICE = {
+  "나염":    { thr:100, 소:{판:35000,장:350},  대:{판:50000,장:500},  특대:{판:70000,장:700} },
+  "패딩나염":{ thr:100, 소:{판:50000,장:500},  대:{판:70000,장:700},  특대:{판:90000,장:900} },
+  "자수":    { thr:30,  소:{판:90000,장:3000}, 대:{판:120000,장:6000}, 특대:{판:120000,장:6000} },
+  "전사":    { 소:[[11,3000],[31,2500],[101,2000],[Infinity,1700]],
+              대:[[11,6000],[31,4000],[101,3500],[Infinity,3000]],
+              특대:[[11,8000],[31,6000],[101,4500],[Infinity,4200]] },
+  "모자나염":{ flat:44000, over:440, thr:50 }
+};
+/* 표준 비용 산출 → {perUnit(장당), lump(판비/일괄)} */
+function getStandard(method, size, qty){
+  if(method==="모자나염"){ const m=PRICE.모자나염;
+    return qty<=m.thr ? {perUnit:0, lump:m.flat} : {perUnit:m.over, lump:m.flat - m.thr*m.over}; }
+  if(method==="전사"){ const tiers=PRICE.전사[size]||PRICE.전사.대;
+    for(const [max,rate] of tiers){ if(qty<max) return {perUnit:rate, lump:0}; }
+    return {perUnit:tiers[tiers.length-1][1], lump:0}; }
+  const m=PRICE[method]||PRICE.나염; const cell=m[size]||m.대;
+  return qty < m.thr ? {perUnit:0, lump:cell.판} : {perUnit:cell.장, lump:0};
+}
+/* 자릿수 검증 기준: 표준 실효 장당(= 표준 총액 / 수량) */
+function stdEffectiveUnit(method, size, qty){
+  const s = getStandard(method, size, qty);
+  return Math.max(1, Math.round((s.perUnit*qty + s.lump)/qty));
+}
+/* 자수 판 보유(재주문) 고객: 판비 면제, 장당 3,000 적용. 그 외는 표준단가 */
+function stdForPrint(o, p){
+  if(p.method==="자수" && o.plateHeld) return { perUnit:3000, lump:0 };
+  if(p.method==="나염" && o.orderType==="추가" && nayeomPlate(o).status==="valid"){
+    const c = PRICE.나염[p.size] || PRICE.나염.대;     // 판 유효: 판비 면제, 장당만
+    return { perUnit:c.장, lump:0 };
+  }
+  return getStandard(p.method, p.size, o.qty);          // 그 외(만료 포함): 판비 재부과 표준
+}
+/* 인쇄방법 경제성 회유: 소량(<30장) 자수는 판비 때문에 비효율 → 전사·나염 권장.
+   단, 판 보유 재주문이거나 고객이 강력 요청(insistEmbroidery)이면 회유 안 함 */
+function embroiderySteer(o){
+  if(!o.printYN || o.insistEmbroidery || o.plateHeld) return null;
+  for(const p of o.prints){
+    if(p.method==="자수" && o.qty < 30){
+      const emb  = stdEffectiveUnit("자수", p.size, o.qty);
+      const dtf  = stdEffectiveUnit("전사", p.size, o.qty);
+      const nay  = stdEffectiveUnit("나염", p.size, o.qty);
+      return `소량 자수 장당 ₩${won(emb)} → 전사 ₩${won(dtf)}·나염 ₩${won(nay)} 권장`;
+    }
+  }
+  return null;
+}
+/* 인쇄내용 시그니처 + 추가건 진위: '추가'로 들어왔는데 원본과 인쇄내용이 다르면 진짜 추가건 아닐 수 있음 */
+const printSig = o => o.prints.map(p=>`${p.method}/${p.pos}/${p.size}`).sort().join("|");
+function addonMismatch(o){
+  if(o.orderType!=="추가") return null;
+  if(o.claimedOriginalSig && o.claimedOriginalSig !== printSig(o))
+    return `원본(${o.originalId})과 인쇄내용 상이 - 진짜 추가건인지 확인 필요`;
+  return null;
+}
+/* 나염 판 보관기한 = 30일. 추가건인데 원본이 30일 초과면 판 재제작(판비 재부과) 필요.
+   이걸 못 보고 장당(350원)만 청구하면 판비(35,000원)를 날리는 큰 사고 */
+const PLATE_TODAY = new Date();
+const daysSince = ds => ds ? Math.round((PLATE_TODAY - new Date(ds+"T00:00:00"))/86400000) : 9999;
+function nayeomPlate(o){
+  if(o.orderType!=="추가" || !o.printYN || !o.prints.some(p=>p.method==="나염")) return { status:"na" };
+  const dys = daysSince(o.originalDate);
+  return { status: dys<=30 ? "valid" : "expired", days:dys };
+}
+function plateExpiryRisk(o){
+  const pl = nayeomPlate(o);
+  return pl.status==="expired"
+    ? `나염 판 보관기한(30일) 초과 - ${pl.days}일 경과. 판 재제작·판비 재부과 필요(장당만 청구 시 판비 손실 사고)`
+    : null;
+}
+const SIZES = ["S","M","L","XL","2XL","3XL","4XL"];
+const SIZE_W = [0.08,0.18,0.24,0.22,0.15,0.08,0.05];
+const GARMENT_PRICE = { "라운드 티":4800,"맨투맨":12000,"후드집업":18500,"드라이 티":5200,"카라 티":9800,"기능성 티":7600,"오버핏 티":8900,"조끼":15000,"셔츠":13500 };
+function splitQty(qty){
+  const arr = SIZE_W.map(w => Math.round(qty*w));
+  arr[2] += qty - arr.reduce((a,b)=>a+b,0);   // 잔여는 L에서 보정
+  if(arr[2] < 0){ arr[3] += arr[2]; arr[2] = 0; }
+  return arr;
+}
+/* 상태별 목표 건수(매뉴얼 느낌: 시안등록·상품준비중이 많고 미처리 적음) */
+const STAGE_TARGET = { "미처리":16,"상담진행":9,"시안요청":11,"시안등록":28,"수정요청":6,"결제요청":19,"입금완료":8,"상품준비중":34 };
+
+let SEQ = 17060000;
+const ORDERS = [];
+for(const st of STAGES){
+  const n = STAGE_TARGET[st.key];
+  for(let i=0;i<n;i++){
+    const printYN = rnd() > 0.22;                 // 약 22%는 인쇄 없는 건
+    // 인쇄X 건은 시안 단계(시안요청/시안등록/수정요청)에 있을 수 없음
+    if(!printYN && (st.key==="시안요청"||st.key==="시안등록"||st.key==="수정요청")) continue;
+    const qty = [24,28,32,45,60,75,90,120,140,200,210][Math.floor(rnd()*11)];
+    const garment = pick(GARMENTS);
+    const sale = GARMENT_PRICE[garment];
+    const disc = Math.round(sale*0.08/100)*100;       // 할인폭(가격재고)
+    const gUnit = sale - disc;                          // 할인 적용 단가
+    const sizeQty = splitQty(qty);
+    const garmentTotal = gUnit * qty;
+    let prints = [];
+    if(printYN){
+      const cnt = rnd()>0.5?2:1;
+      for(let j=0;j<cnt;j++){
+        const method = pick(PRINT_METHODS), pos = pick(POS);
+        // 위치에 맞는 표준 크기가 원칙. 단, 접수(미처리) 건은 ~28%가 위치↔크기 어긋남(사고 유발) 주입
+        const consistent = POS_SIZE[pos];
+        const size = (st.key==="미처리" && rnd()>0.72) ? pick(PRINT_SIZES.filter(s=>s!==consistent)) : consistent;
+        const std = getStandard(method, size, qty);                        // 매뉴얼 p10 실단가
+        const perUnit = std.perUnit;                                       // 장당(빨간창)
+        const lump = std.lump;                                             // 판비/일괄(흰창)
+        const etc  = rnd()>0.92 ? Math.round((10000+rnd()*40000)/1000)*1000 : 0;  // 기타비용
+        const amount = perUnit*qty + lump + etc;
+        prints.push({ method, pos, size, perUnit, lump, etc, amount });
+      }
+    }
+    const printTotal = prints.reduce((s,p)=>s+p.amount,0);
+    const quote = garmentTotal + printTotal;     // 견적 = 의류비 + 인쇄비
+    // 주문유형(매뉴얼 p15): 일반/추가/대행. 접수 건 일부는 '추가'인데 원본과 인쇄내용이 달라진 케이스 주입
+    let orderType="일반", originalId=null, claimedOriginalSig=null, originalDate=null;
+    if(st.key==="미처리"){
+      const rr = rnd();
+      if(rr > 0.70){
+        orderType = "추가";
+        originalId = "HI-" + (17059000 + Math.floor(rnd()*900));
+        const od = new Date(PLATE_TODAY); od.setDate(od.getDate() - (5 + Math.floor(rnd()*70)));  // 5~75일 전
+        originalDate = od.toISOString().slice(0,10);
+        const sig = prints.map(p=>`${p.method}/${p.pos}/${p.size}`).sort().join("|");
+        claimedOriginalSig = (rnd() > 0.45) ? sig : (sig + "|추가로고/앞/소");  // 뒤: 원본과 상이 → 확인 필요
+      } else if(rr > 0.60){ orderType = "대행"; }
+    }
+    // 납품약속일: 기준일 대비 -3 ~ +45일 분포 (임박·초과 섞이게)
+    const offset = Math.floor(-3 + rnd()*48);
+    const due = new Date(2026,6,24); due.setDate(due.getDate()+offset);
+    const dueStr = due.toISOString().slice(0,10);
+    // 미수금: 대부분 0, 결제요청/후결제 일부 양수, 드물게 과입금 음수
+    let misu=0;
+    if(st.key==="결제요청") misu = rnd()>0.4 ? quote : 0;
+    else if(st.key==="상품준비중"||st.key==="입금완료") misu = rnd()>0.85 ? Math.round(quote*0.3/1000)*1000 : (rnd()>0.95 ? -Math.round(quote*0.05/1000)*1000 : 0);
+    ORDERS.push({
+      id:"HI-"+(SEQ++), event:pick(EVENTS), client:pick(CLIENTS), qty,
+      garment, sale, disc, gUnit, sizeQty, garmentTotal, printTotal,
+      staff:pick(STAFFS),
+      designer: printYN ? pick(DESIGNERS) : "-",
+      phone:`010-${1000+Math.floor(rnd()*9000)}-${1000+Math.floor(rnd()*9000)}`,
+      prints, quote, stage:st.key, due:dueStr, misu, printYN,
+      supplier: pick(["익명 공급처 A","익명 공급처 B","익명 공급처 C"]),
+      shipFrom: "본사 창고",
+      trackingNo: "",
+      // 접수(미처리) 건은 원천 상태에 결함이 섞여 있음 → 트리아지 대상. 그 외 단계는 이미 접수 통과분
+      fileAttached: st.key==="미처리" ? (printYN ? rnd()>0.35 : true) : printYN,
+      contactOk: st.key==="미처리" ? rnd()>0.18 : true,
+      specialRequest: (st.key==="미처리" && rnd()>0.75) ? pick(["색상 커스텀 요청","로고 파일 추가 예정","납기 급함 문의"]) : null,
+      // 인쇄 '없음' 건인데 인쇄메모가 남아있는 모순 케이스(접수 사고 다발) 일부 주입
+      printMemo: printYN ? "인쇄위치·도수 확인 요망" : ((st.key==="미처리" && rnd()>0.82) ? "뒷면 로고 1도 인쇄 요청" : null),
+      preQuoted: rnd()>0.4,   // 사전견적 받은 고객 여부(확정 근거)
+      plateHeld: st.key==="미처리" && rnd()>0.82,   // 자수 판 보유(재주문) 고객 → 판비 면제
+      insistEmbroidery: false,                       // 회유에도 자수 고집(1%)
+      orderType, originalId, claimedOriginalSig, originalDate,   // 주문유형 + 추가건 원본 대조 + 원본주문일(나염 판 만료)
+      // 상담진행 건은 걸러진 사유를 태그로(보류 사유). 트리아지로 넘어온 건은 실제 사유로 갱신됨
+      consultReasons: st.key==="상담진행" ? [pick(["연락 부재","파일 미첨부","위치↔크기","추가건 확인","방법 회유","특이요청"])] : [],
+      memos:[]
+    });
+  }
+}
+/* 데모 보장: 미처리 건에 확정 케이스 주입
+   - 자수 3건: 회유 2 + 판 보유(판비 면제) 1
+   - 나염 추가 2건: 판 유효(장당만) 1 + 판 만료(판비 재부과·사고) 1 */
+(function seedCases(){
+  const mi = ORDERS.filter(o=>o.stage==="미처리");
+  mi.slice(0,3).forEach((o,idx)=>{
+    o.qty=24; o.sizeQty=splitQty(24); o.garmentTotal=o.gUnit*24;
+    o.printYN=true; o.plateHeld=(idx===2); o.insistEmbroidery=false; o.orderType="일반"; o.originalDate=null;
+    const p={ method:"자수", pos:"좌흉", size:"소", etc:0 };
+    const s=stdForPrint(o,p); p.perUnit=s.perUnit; p.lump=s.lump; p.amount=p.perUnit*24+p.lump;
+    o.prints=[p]; o.printTotal=p.amount; o.quote=o.garmentTotal+o.printTotal;
+  });
+  const setNayeomAddon=(o, daysAgo)=>{
+    if(!o) return;
+    o.orderType="추가"; o.originalId="HI-"+(17059000+Math.floor(rnd()*900));
+    const od=new Date(PLATE_TODAY); od.setDate(od.getDate()-daysAgo); o.originalDate=od.toISOString().slice(0,10);
+    o.printYN=true; o.plateHeld=false; o.contactOk=true; o.specialRequest=null; o.fileAttached=true;
+    const p={ method:"나염", pos:"앞", size:"대", etc:0 };
+    const s=stdForPrint(o,p); p.perUnit=s.perUnit; p.lump=s.lump; p.amount=p.perUnit*o.qty+p.lump;
+    o.prints=[p]; o.claimedOriginalSig=printSig(o);   // 인쇄내용은 일치(판 이슈만 부각)
+    o.printTotal=p.amount; o.quote=o.garmentTotal+o.printTotal;
+  };
+  setNayeomAddon(mi[3], 12);   // 판 유효(12일 전) → 장당만
+  setNayeomAddon(mi[4], 60);   // 판 만료(60일 전) → 판비 재부과 필요(사고 방지)
+})();
+
+/* =========================================================
+   [화면 컨텍스트 M1] D-day 계산 + 색상 경고 + 렌더
+   ========================================================= */
+const NOW = new Date(); NOW.setHours(0,0,0,0);
+const dDay = s => Math.round((new Date(s+"T00:00:00") - NOW)/86400000);
+function ddayInfo(s){
+  const d = dDay(s);
+  if(d<0)   return { label:`D+${-d}`, note:"초과", cls:"over" };
+  if(d===0) return { label:"D-DAY", note:"", cls:"danger" };
+  if(d<=2)  return { label:`D-${d}`, note:"", cls:"danger" };
+  if(d<=5)  return { label:`D-${d}`, note:"", cls:"warn" };
+  return { label:`D-${d}`, note:"", cls:"ok" };
+}
+const IMMINENT = o => dDay(o.due) <= 2;   // 임박 기준: D-2 이하(초과 포함)
+const won = n => n.toLocaleString("ko-KR");
+
+/* ---------- KPI (라이트, 미니 막대) ---------- */
+function kpiCard(k,v,cls,pct){ return `<div class="kpi ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`; }
+function renderKpis(){
+  const total = ORDERS.length;
+  const imm = ORDERS.filter(IMMINENT).length;
+  const consult = ORDERS.filter(o=>o.stage==="상담진행").length;
+  const misuN = ORDERS.filter(o=>o.misu>0).length;
+  const misuSum = ORDERS.reduce((s,o)=>s+Math.max(o.misu,0),0);
+  const pct=(a)=>total?Math.min(100,Math.round(a/total*100)):0;
+  document.getElementById("kpis").innerHTML =
+    kpiCard("진행 중 주문", won(total)+" 건", "accent", 100) +
+    kpiCard("납기 임박 (D-2↓)", won(imm)+" 건", "alert", pct(imm)) +
+    kpiCard("상담 대기", won(consult)+" 건", "accent", pct(consult)) +
+    kpiCard("미수금 합계", "₩"+won(misuSum), "alert", pct(misuN));
+}
+
+/* ---------- 상태별 주문 현황 (가로 막대 차트) ---------- */
+const TEAM_COLOR = { susubal:"#3b6ef5", design:"#7b8496", consult:"#b0893a", cancel:"#c0c5cf" };
+function renderStageChart(){
+  const el = document.getElementById("stagechart"); if(!el) return;
+  const counts = STAGES.map(s => ORDERS.filter(o=>o.stage===s.key).length);
+  const max = Math.max(1, ...counts);
+  el.innerHTML = STAGES.map((s,idx)=>{
+    const n = counts[idx];
+    const imm = ORDERS.filter(o=>o.stage===s.key && IMMINENT(o)).length;
+    const w = Math.round(n/max*100);
+    const c = TEAM_COLOR[s.team];
+    return `<div class="sbar" onclick="showList('${s.key}')">
+      <div class="sbl"><span class="sdot" style="background:${c}"></span>${s.step}. ${s.key}</div>
+      <div class="strack"><i style="width:${w}%; background:${c}"></i></div>
+      <div class="sval">${won(n)}${imm?` <em>임박 ${imm}</em>`:''}</div>
+    </div>`;
+  }).join("") +
+  `<div class="stage-legend"><span><i style="background:${TEAM_COLOR.susubal}"></i>수발주팀</span><span><i style="background:${TEAM_COLOR.design}"></i>디자인팀</span><span><i style="background:${TEAM_COLOR.consult}"></i>컨설팅팀</span></div>`;
+}
+
+/* ---------- 도넛: 상태별 주문 분포 (단색 블루 스케일) ---------- */
+const STAGE_COLORS = {"미처리":"#d3ddf3","상담진행":"#adc0ea","시안요청":"#8aa5e2","시안등록":"#688bd9","수정요청":"#4f79d2","결제요청":"#3b6ef5","입금완료":"#2f57cc","상품준비중":"#24469e"};
+function renderDonut(){
+  const total = ORDERS.length || 1;
+  const counts = STAGES.map(s => ({ s, n: ORDERS.filter(o=>o.stage===s.key).length }));
+  const r=54, C=2*Math.PI*r, cx=66, cy=66; let acc=0;
+  const segs = counts.map(({s,n})=>{
+    const len = (n/total)*C;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${STAGE_COLORS[s.key]}" stroke-width="17" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    acc += len; return seg;
+  }).join("");
+  const svg = `<svg class="donut" width="132" height="132" viewBox="0 0 132 132">${segs}
+    <text class="donut-center" x="66" y="64" text-anchor="middle">${won(ORDERS.length)}</text>
+    <text class="donut-sub" x="66" y="79" text-anchor="middle">전체 주문</text></svg>`;
+  const legend = `<div class="legend">${counts.map(({s,n})=>
+    `<div class="li" onclick="showList('${s.key}')"><span class="sw" style="background:${STAGE_COLORS[s.key]}"></span><span class="ln">${s.step}. ${s.key}</span><span class="lc">${n}</span></div>`).join("")}</div>`;
+  document.getElementById("donutwrap").innerHTML = svg + legend;
+}
+
+/* ---------- 납기 임박 주문 리스트 (레퍼런스: 거래내역 스타일) ---------- */
+let immSort = "dday";
+function sortImminent(){ immSort = immSort==="dday" ? "quote" : "dday"; renderImminent(); }
+const GARMENT_COLORS = {};   // 아이콘 색은 팀 색으로 통일(무지개 방지)
+/* 상담 대기 사유별 분류 (상담진행 = 예외 큐를 세부 태그로) */
+function renderConsult(){
+  const el = document.getElementById("consult-list"); if(!el) return;
+  const orders = ORDERS.filter(o=>o.stage==="상담진행");
+  const counts = {};
+  orders.forEach(o=>{ const rs=(o.consultReasons&&o.consultReasons.length)?o.consultReasons:["기타"]; rs.forEach(r=>counts[r]=(counts[r]||0)+1); });
+  const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(1, ...rows.map(r=>r[1]));
+  el.innerHTML = rows.length
+    ? rows.map(([r,n])=>`<div class="cbar" onclick="showList('상담진행')"><span class="cl">${r}</span><div class="ctrack"><i style="width:${Math.round(n/max*100)}%"></i></div><span class="cn">${n}</span></div>`).join("")
+    : `<div class="tl-empty">상담 대기 없음</div>`;
+}
+function renderImminent(){
+  const rows = ORDERS.filter(IMMINENT)
+    .sort((a,b)=> immSort==="quote" ? b.quote-a.quote : dDay(a.due)-dDay(b.due))
+    .slice(0,9);
+  const el = document.getElementById("translist");
+  if(!rows.length){ el.innerHTML = `<div class="tl-empty">임박 주문이 없습니다</div>`; return; }
+  el.innerHTML = rows.map(o=>{
+    const dd = ddayInfo(o.due);
+    return `<div class="tl-item" onclick="openDetail('${o.id}')">
+      <div class="tl-ic" style="background:${GARMENT_COLORS[o.garment]||'#64748b'}">${o.garment.slice(0,1)}</div>
+      <div class="tl-main"><div class="t1">${o.event}</div><div class="t2">${o.staff} · ${o.stage}</div></div>
+      <span class="dday ${dd.cls}">${dd.label}${dd.note?" "+dd.note:""}</span>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- 담당팀별 구획 + 상태 타일 ---------- */
+function tileHTML(st){
+  const inStage = ORDERS.filter(o => o.stage === st.key);
+  const imm = inStage.filter(IMMINENT).length;
+  const immHTML = imm>0
+    ? `<span class="imminent">임박 ${imm}건</span>`
+    : `<span class="imminent none">여유</span>`;
+  return `<div class="tile" onclick="showList('${st.key}')">
+      <div class="step">${st.step}</div>
+      <div class="name">${st.key}</div>
+      <div class="cnt">${won(inStage.length)}<small>건</small></div>
+      ${immHTML}
+    </div>`;
+}
+function zoneHTML(teamKey){
+  const t = TEAMS[teamKey];
+  const sts = STAGES.filter(s => s.team === teamKey);
+  const totalImm = ORDERS.filter(o => stageOf(o.stage).team===teamKey && IMMINENT(o)).length;
+  return `<div class="zone ${t.cls}">
+    <div class="zone-head"><span class="tag">${t.name}</span><span class="role">${t.role}</span></div>
+    <div class="tiles">${sts.map(tileHTML).join("")}</div>
+    <div class="zone-foot">이 팀 담당 임박건 <b>${totalImm}</b>건 · 상태 클릭 시 주문내역으로 이동</div>
+  </div>`;
+}
+function consultZoneHTML(){
+  const t = TEAMS.consult;
+  return `<div class="zone ${t.cls}">
+    <div class="zone-head"><span class="tag">${t.name}</span><span class="role">${t.role}</span></div>
+    <div class="tiles">
+      <div class="tile" style="cursor:default">
+        <div class="step">문의</div><div class="name">견적문의 미답변</div>
+        <div class="cnt">0<small>건</small></div><span class="imminent none">정상</span>
+      </div>
+      <div class="tile" style="cursor:default">
+        <div class="step">문의</div><div class="name">1:1문의 미답변</div>
+        <div class="cnt">0<small>건</small></div><span class="imminent none">정상</span>
+      </div>
+    </div>
+    <div class="zone-foot">고객센터 접수·처리 · SMS 충전 ₩865,964</div>
+  </div>`;
+}
+function renderZones(){
+  document.getElementById("zones").innerHTML =
+    zoneHTML("susubal") + zoneHTML("design") + consultZoneHTML() +
+    `<div class="handoff">
+       <span>배턴 이동 지점(사고 잦음 S1):</span>
+       <span class="pill">상담진행 → 시안요청</span>
+       <span class="pill">수정요청 → 결제요청</span>
+       <span class="pill">입금완료 → 상품준비중(인쇄발주)</span>
+     </div>`;
+}
+
+/* =========================================================
+   [화면 컨텍스트 M1] 주문내역 리스트 (드릴인) - 볼륨은 필터로 감당
+   ========================================================= */
+function fillFilters(){
+  const stageSel = document.getElementById("f-stage");
+  stageSel.innerHTML = `<option value="전체">전체 상태</option>` +
+    STAGES.map(s=>`<option value="${s.key}">${s.step}. ${s.key}</option>`).join("");
+  document.getElementById("f-staff").innerHTML =
+    `<option value="전체">전체</option>` + STAFFS.map(s=>`<option>${s}</option>`).join("");
+  document.getElementById("f-designer").innerHTML =
+    `<option value="전체">전체</option>` + DESIGNERS.map(s=>`<option>${s}</option>`).join("");
+}
+function rowHTML(o){
+  const dd = ddayInfo(o.due);
+  const team = stageMeta(o.stage).team;
+  const printCells = o.printYN
+    ? o.prints.map(p=>`<div class="p"><span class="pm">${p.method}${p.pos!=="-"?` · ${p.pos}`:""}</span><span class="pa">₩${won(p.amount)}</span></div>`).join("")
+    : `<div class="p none">인쇄 없음</div>`;
+  const misuCls = o.misu>0?"pos":(o.misu<0?"neg":"zero");
+  const misuTxt = o.misu>0?`₩${won(o.misu)}`:(o.misu<0?`-₩${won(-o.misu)}`:"-");
+  const stColor = team==="design" ? "de" : "su";
+  return `<tr>
+    <td><div class="oid" onclick="openDetail('${o.id}')" title="상세주문내역 열기">${o.id}</div><div>${o.client} · ${o.event}</div><div class="sub">${o.garment}</div></td>
+    <td><span class="badge ${stColor}">${stageMeta(o.stage).step}. ${o.stage}</span>${o.stage==="상담진행" && (o.consultReasons||[]).length ? `<div class="rtags">${o.consultReasons.map(r=>`<span class="rtag">${r}</span>`).join("")}</div>` : ""}</td>
+    <td><div class="owner"><span class="badge su">${o.staff}</span><span class="badge de">${o.designer}</span></div></td>
+    <td><div class="prints">${printCells}</div></td>
+    <td>${won(o.qty)}장</td>
+    <td><span class="dday ${dd.cls}">${dd.label}${dd.note?" "+dd.note:""}</span><div class="sub">${o.due}</div></td>
+    <td><b>₩${won(o.quote)}</b></td>
+    <td class="misu ${misuCls}">${misuTxt}</td>
+  </tr>`;
+}
+function renderList(){
+  const fStage=document.getElementById("f-stage").value;
+  const fStaff=document.getElementById("f-staff").value;
+  const fDes=document.getElementById("f-designer").value;
+  const sort=document.getElementById("f-sort").value;
+  let rows = ORDERS.filter(o =>
+    (heldIds ? heldIds.includes(o.id) : (fStage==="전체"||o.stage===fStage)) &&   // 보류 필터가 켜지면 상태 대신 보류 목록
+    (fStaff==="전체"||o.staff===fStaff) &&
+    (fDes==="전체"||o.designer===fDes));
+  rows.sort((a,b)=>{
+    if(sort==="misu") return b.misu-a.misu;
+    if(sort==="quote") return b.quote-a.quote;
+    return dDay(a.due)-dDay(b.due);
+  });
+  document.getElementById("listbody").innerHTML =
+    rows.length ? rows.map(rowHTML).join("") :
+    `<tr><td colspan="8" style="text-align:center;color:var(--faint);padding:26px">조건에 맞는 주문이 없습니다</td></tr>`;
+  const imm = rows.filter(IMMINENT).length;
+  const heldNote = heldIds ? `<span class="held-note">자동 처리 보류 ${won(heldIds.length)}건만 보는 중 <button onclick="clearHeld()">전체 보기</button></span> · ` : "";
+  document.getElementById("listcount").innerHTML =
+    heldNote + `총 <b>${won(rows.length)}</b>건 · 임박 <b style="color:var(--danger)">${imm}</b>건`;
+}
+
+/* =========================================================
+   [화면 컨텍스트 M1] 상세주문내역 (주문정보 · 메모창 · 주문옵션) - 매뉴얼 p14 반영
+   주문옵션의 인쇄 단가는 편집 가능 → M3 자릿수 검증이 여기에 연결됨
+   ========================================================= */
+let curDetail = null, memoTab = "메모";
+const orderById = id => ORDERS.find(o => o.id === id);
+
+const cleanNum = raw => Math.max(0, Math.round(Number(String(raw).replace(/[^0-9.-]/g,"")) || 0));
+function recalcOrder(o){                                   // 자동계산: 금액 = 장당×수량 + 일괄 + 기타
+  o.prints.forEach(p => p.amount = p.perUnit*o.qty + (p.lump||0) + (p.etc||0));
+  o.printTotal = o.prints.reduce((s,p)=>s+p.amount,0);
+  o.quote = o.garmentTotal + o.printTotal;
+}
+function editP(id, i, field, raw){                         // 장당단가/일괄금액/기타비용 수정
+  const o = orderById(id);
+  o.prints[i][field] = cleanNum(raw);
+  recalcOrder(o);
+  renderDetail(o);          // M3: 이 지점에서 validateQuote 경고가 함께 뜸
+}
+function applyStd(id, i){                                   // 매뉴얼 표준단가 자동채움 (장당+판비, 자수 판보유 반영)
+  const o = orderById(id);
+  const p = o.prints[i];
+  const s = stdForPrint(o, p);
+  p.perUnit = s.perUnit; p.lump = s.lump;
+  recalcOrder(o);
+  renderDetail(o);
+}
+function editMethod(id, i, val){                            // 인쇄방법 변경 → 표준단가 재적용
+  const o = orderById(id); o.prints[i].method = val; applyStd(id, i);
+}
+function editSize(id, i, val){                              // 인쇄크기 변경 → 표준단가 재적용
+  const o = orderById(id); o.prints[i].size = val; applyStd(id, i);
+}
+function addMemo(id){
+  const ta = document.getElementById("memo-input");
+  const txt = (ta.value||"").trim();
+  if(!txt) return;
+  const o = orderById(id);
+  o.memos.unshift({ t:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}), text:txt });
+  ta.value="";
+  renderDetail(o);
+}
+function setMemoTab(id, tab){ memoTab = tab; renderDetail(orderById(id)); }
+
+function renderDetail(o){
+  const dd = ddayInfo(o.due);
+  const st = stageMeta(o.stage);
+  document.getElementById("d-title").textContent = `상세주문내역  ·  ${o.id}`;
+
+  /* 패널1 - 주문정보 */
+  const p1 = `
+    <div class="panel">
+      <div class="ph">주문정보</div>
+      <div class="pb">
+        <div class="field"><span class="lab">담당자지정 <span style="color:var(--faint);font-weight:400">(지정 시 SMS 자동)</span></span><span class="val"><span class="badge su">${o.staff}</span><button class="chgbtn" onclick="assignStaff('${o.id}')">변경</button></span></div>
+        <div class="field"><span class="lab">디자이너지정</span><span class="val"><span class="badge de">${o.designer}</span><button class="chgbtn" onclick="assignDesigner('${o.id}')">변경</button></span></div>
+        <div class="field"><span class="lab">납품약속일</span><span class="val">${o.due} <span class="dday ${dd.cls}">${dd.label}${dd.note?" "+dd.note:""}</span><button class="chgbtn">변경</button></span></div>
+        <div class="field"><span class="lab">주문번호</span><span class="val">${o.id}</span></div>
+        <div class="field"><span class="lab">주문자정보</span><span class="val">${o.client}</span></div>
+        <div class="field"><span class="lab" >연락처</span><span class="val">${o.phone}</span></div>
+        <div class="field"><span class="lab">행사 / 상품</span><span class="val">${o.event} · ${o.garment}</span></div>
+        <div class="field"><span class="lab">주문유형</span><span class="val">${o.orderType}${o.orderType==="추가" && o.originalId ? ` <span class="sub">· 원본 ${o.originalId}</span>` : ""}</span></div>
+        <div class="field"><span class="lab">진행상태 <span style="color:var(--faint);font-weight:400">(선택 시 변경 · 관문 자동검증)</span></span>
+          <span class="val"><select class="stagesel" onchange="selectStage('${o.id}', this.value)">
+            ${ALL_STAGES.map(s=>`<option value="${s}" ${s===o.stage?'selected':''}>${stageMeta(s).step}. ${s}</option>`).join("")}
+          </select></span></div>
+      </div>
+    </div>`;
+
+  /* 패널2 - 메모창 */
+  const memoItems = o.memos.length
+    ? o.memos.map(m=>`<div class="memo"><div class="mt">${m.t}</div><div class="mtext">${m.text}</div></div>`).join("")
+    : `<div class="empty">메모가 없습니다</div>`;
+  const logItems = `
+    <div class="memo"><div class="mt">접수</div><div class="mtext">고객 주문 완료 · 진행담당자 배정 대기</div></div>
+    <div class="memo"><div class="mt">진행</div><div class="mtext">현재 상태: ${st.step}. ${o.stage}</div></div>`;
+  /* 검증 탭: 자동 검증 감사 로그 + 현재 상태 진입조건 재검증(신빙성 근거) */
+  const auditMemos = o.memos.filter(m=>m.text.startsWith("["));   // 시스템 자동 기록만
+  const auditHTML = auditMemos.length
+    ? auditMemos.map(m=>`<div class="audit-row"><span class="mt">${m.t}</span><span class="atext">${m.text}</span></div>`).join("")
+    : `<div class="empty">자동 검증 기록이 아직 없습니다 (진행상태를 바꾸면 기록됩니다)</div>`;
+  const vgate = checkGate(o.stage);
+  let reverifyHTML;
+  if(vgate.length){
+    const vres = evalGate(o, o.stage);
+    const vok = vres.every(r=>r.res.ok);
+    reverifyHTML = `<div class="verify-note ${vok?'ok':'bad'}">현재 상태 <b>${o.stage}</b> 진입 조건을 지금 다시 검증 - ${vok?'전부 충족 · 통과 근거 재현됨 ✓':'일부 미충족 ✗'}</div>
+      <div class="gate-items">${vres.map(r=>`<div class="gitem ${r.res.ok?'pass':'fail'}"><span class="gstat">${r.res.ok?'✓':'✗'}</span><span class="gtext"><b>${r.item.label}</b><span class="gdetail">${r.res.detail}</span></span></div>`).join("")}</div>`;
+  } else {
+    reverifyHTML = `<div class="verify-note">현재 상태 <b>${o.stage}</b>는 진입 관문이 없는 단계입니다(접수 버퍼/종결). 분류 근거는 위 감사 로그를 참고하세요.</div>`;
+  }
+  const verifyBody = `<div class="verify-wrap">
+      <div class="v-sec">자동 검증 기록 (감사 로그)</div>${auditHTML}
+      <div class="v-sec" style="margin-top:14px">현재 상태 근거 재검증</div>${reverifyHTML}
+    </div>`;
+  const p2 = `
+    <div class="panel">
+      <div class="ph">메모 · 검증</div>
+      <div class="pb">
+        <div class="memotabs">
+          <button class="${memoTab==='메모'?'on':''}" onclick="setMemoTab('${o.id}','메모')">메모</button>
+          <button class="${memoTab==='로그'?'on':''}" onclick="setMemoTab('${o.id}','로그')">로그</button>
+          <button class="${memoTab==='검증'?'on':''}" onclick="setMemoTab('${o.id}','검증')">검증</button>
+        </div>
+        ${ memoTab==='메모' ? `
+          <div class="memobox">
+            <textarea id="memo-input" placeholder="메모 입력 (핸드오프 인수인계·특이사항)"></textarea>
+            <button class="savebtn" onclick="addMemo('${o.id}')">저장</button>
+          </div>
+          <div class="memolist">${memoItems}</div>`
+        : memoTab==='검증' ? verifyBody
+        : `<div class="memolist">${logItems}</div>` }
+      </div>
+    </div>`;
+
+  /* 패널3 - 주문옵션 (상품정보 + 인쇄정보) : 매뉴얼 p17 비용구조 반영 */
+  const sizeRows = SIZES.map((sz,i)=> o.sizeQty[i]>0
+    ? `<tr><td>${o.garment} · ${sz}</td><td class="num">${o.sizeQty[i]}</td><td class="num">₩${won(o.sale)}</td><td class="num">-₩${won(o.disc)}</td><td class="num">₩${won(o.gUnit)}</td><td class="num">₩${won(o.gUnit*o.sizeQty[i])}</td></tr>`
+    : "").join("");
+  const methodOpts = (sel)=> PRINT_METHODS.map(m=>`<option ${m===sel?'selected':''}>${m}</option>`).join("");
+  const sizeOpts = (sel)=> PRINT_SIZES.map(s=>`<option ${s===sel?'selected':''}>${s}</option>`).join("");
+  const printRows = o.printYN
+    ? o.prints.map((p,i)=>{
+        const s = getStandard(p.method, p.size, o.qty);
+        const posExp = POS_SIZE[p.pos];
+        const mismatch = (posExp && posExp!==p.size) ? `<span class="mismatch">${p.pos}는 표준 ${posExp}형 - 크기 ${p.size}형과 불일치(견적 사고 위험)</span>` : "";
+        const guideTxt = `표준(${p.method}·${p.size}·${o.qty}장): 장당 ₩${won(s.perUnit)} · 판비 ₩${won(s.lump)}`;
+        return `
+        <tr id="prow-${i}">
+          <td>
+            <select class="psel" onchange="editMethod('${o.id}',${i},this.value)">${methodOpts(p.method)}</select>
+            <select class="psel sm" onchange="editSize('${o.id}',${i},this.value)">${sizeOpts(p.size)}</select>
+            <div class="sub">${p.pos}</div>
+          </td>
+          <td class="num"><input class="pinput red" id="pu-${i}" value="${p.perUnit}" onchange="editP('${o.id}',${i},'perUnit',this.value)" title="장당(개당) 단가 - ×수량 자동"></td>
+          <td class="num">${won(o.qty)}</td>
+          <td class="num"><input class="pinput" id="pl-${i}" value="${p.lump}" onchange="editP('${o.id}',${i},'lump',this.value)" title="일괄/판비 금액(총액으로 추가)"></td>
+          <td class="num"><input class="pinput" id="pe-${i}" value="${p.etc}" onchange="editP('${o.id}',${i},'etc',this.value)" title="기타비용"></td>
+          <td class="num" id="pamt-${i}"><b>₩${won(p.amount)}</b></td>
+        </tr>
+        <tr id="pguide-${i}"><td colspan="6">
+          <span class="guide">${guideTxt} <button class="mini" onclick="applyStd('${o.id}',${i})">표준단가 자동적용</button></span>
+          ${mismatch}
+          <span class="warnmsg" id="pwarnmsg-${i}" style="display:none"></span>
+        </td></tr>`;
+      }).join("")
+    : `<tr><td colspan="6" style="color:var(--faint)">인쇄 없는 건 (시안 단계 없음)</td></tr>`;
+  // 매뉴얼 p10 실단가 가이드: 현재 수량 기준 방법×크기 표준(장당/판비)
+  const guideTable = `<div class="rate-guide">
+    <div class="rg-title">매뉴얼 p10 표준단가 - ${won(o.qty)}장 기준 <span>(장당 / 판비·일괄 · 나염 1도 기준)</span></div>
+    <table class="rg-tbl"><thead><tr><th>인쇄방법</th>${PRINT_SIZES.map(s=>`<th class="num">${s}</th>`).join("")}</tr></thead>
+      <tbody>${PRINT_METHODS.map(m=>`<tr><td>${m}</td>${PRINT_SIZES.map(s=>{const g=getStandard(m,s,o.qty);return `<td class="num">${g.perUnit?`₩${won(g.perUnit)}/장`:`₩${won(g.lump)}`}</td>`;}).join("")}</tr>`).join("")}</tbody>
+    </table>
+    <div class="rg-note">※ 펄·야광 3배 / 형광 2배 / 실크·발포·금분·은분 +5,000원 · 색상 도수 추가 시 판비 증가 (매뉴얼 p10)</div>
+  </div>`;
+  const p3 = `
+    <div class="panel opt">
+      <div class="ph">주문옵션 - 상품정보 / 인쇄정보 <span style="font-weight:400;color:var(--faint)">· 금액 자동계산</span></div>
+      <div class="pb">
+        <div class="sec-title">상품정보 (의류)</div>
+        <table>
+          <thead><tr><th>옵션(사이즈)</th><th class="num">수량</th><th class="num">판매가</th><th class="num">가격내고</th><th class="num">할인가</th><th class="num">합계</th></tr></thead>
+          <tbody>${sizeRows}</tbody>
+          <tfoot><tr><td>의류 소계</td><td class="num">${won(o.qty)}장</td><td></td><td></td><td></td><td class="num">₩${won(o.garmentTotal)}</td></tr></tfoot>
+        </table>
+
+        <div class="sec-title">인쇄정보 <span style="font-weight:400;color:var(--faint);font-size:11px">(빨강=장당단가×수량 · 흰=일괄 · 기타비용 · 표준단가 대비 자릿수 자동 검증 M3)</span></div>
+        ${(()=>{ const pl=nayeomPlate(o);
+          if(pl.status==="expired") return `<div class="steer expired"><b> 나염 판 만료</b> - 원본 주문 ${pl.days}일 경과(보관기한 30일 초과). <b>판 재제작·판비 재부과 필요</b>. 추가건(장당)으로 처리 시 판비 손실 사고! <div class="steer-act"><button onclick="applyStd('${o.id}',0)">판비 포함 표준단가 재적용</button></div></div>`;
+          if(pl.status==="valid") return `<div class="steer held">나염 판 유효(${pl.days}일 경과, 30일 이내) - 판비 면제, 장당만 청구</div>`;
+          const st2=embroiderySteer(o); if(st2) return `<div class="steer"><b>인쇄방법 상담 자동화</b> - ${st2}. 소량 자수는 판비 때문에 비효율입니다.<div class="steer-act"><button onclick="steerToAlt('${o.id}','전사')">전사로 변경(권장)</button><button onclick="steerToAlt('${o.id}','나염')">나염으로 변경</button><button class="ghost" onclick="insistEmb('${o.id}')">자수 유지(고객 요청 1%)</button></div></div>`;
+          if(o.plateHeld && o.prints.some(p=>p.method==="자수")) return `<div class="steer held">자수 판 보유 고객 - 재주문 판비 면제, 장당 ₩3,000 적용</div>`; return ""; })()}
+        ${guideTable}
+        <table>
+          <thead><tr><th>인쇄방법·위치</th><th class="num">장당단가</th><th class="num">수량</th><th class="num">일괄금액</th><th class="num">기타비용</th><th class="num">금액</th></tr></thead>
+          <tbody>${printRows}</tbody>
+          <tfoot><tr><td>인쇄 소계</td><td></td><td></td><td></td><td></td><td class="num">₩${won(o.printTotal)}</td></tr></tfoot>
+        </table>
+
+        <table style="margin-top:10px">
+          <tfoot><tr class="totrow"><td>견적 합계 (의류 + 인쇄)</td><td class="num grand">₩${won(o.quote)}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+
+  document.getElementById("detailgrid").innerHTML = p1 + p2 + p3;
+  if(typeof runQuoteChecks === "function") runQuoteChecks(o);   // M3 훅
+  if(typeof renderTriagePanel === "function") renderTriagePanel(o); // 접수 트리아지(미처리)
+  if(typeof renderInlineGate === "function") renderInlineGate(); // M2 인라인 게이트
+}
+
+/* =========================================================
+   [검증 컨텍스트 M3] 재사용 스킬: 자릿수 검증 validateQuote()
+   입력 단가를 '예상단가'와 대조 - 1/10이면 0 누락, 10배면 0 초과 의심
+   ========================================================= */
+function validateQuote(input, expect){
+  if(!expect || !input || input<=0) return { level:"none", msg:"" };
+  const r = input/expect;
+  if(r <= 0.2) return { level:"danger", msg:`0 하나 누락 의심 - 예상단가 ₩${won(expect)}의 약 ${(r*100).toFixed(0)}%` };
+  if(r >= 5)   return { level:"danger", msg:`0 하나 초과 의심 - 예상단가 ₩${won(expect)}의 약 ${r.toFixed(1)}배` };
+  if(r <= 0.5) return { level:"warn", msg:`예상단가보다 크게 낮음 (약 ${(r*100).toFixed(0)}%) - 확인 요망` };
+  if(r >= 2)   return { level:"warn", msg:`예상단가보다 크게 높음 (약 ${r.toFixed(1)}배) - 확인 요망` };
+  return { level:"none", msg:"" };
+}
+function runQuoteChecks(o){
+  if(!o.printYN) return;
+  o.prints.forEach((p,i)=>{
+    const expEff = stdEffectiveUnit(p.method, p.size, o.qty);   // 매뉴얼 표준 실효 장당
+    const actEff = Math.round(p.amount / o.qty);                // 입력 실효 장당(=금액/수량)
+    const res = validateQuote(actEff, expEff);                  // 표준 대비 자릿수 대조
+    const msgEl = document.getElementById("pwarnmsg-"+i);
+    if(!msgEl) return;
+    const inp = document.getElementById("pu-"+i);
+    const prow = document.getElementById("prow-"+i);
+    if(res.level==="none"){
+      msgEl.style.display="none"; if(inp) inp.classList.remove("bad"); if(prow) prow.classList.remove("warnrow");
+    }else{
+      msgEl.style.display="";
+      msgEl.textContent = (res.level==="danger"?"자릿수 사고 의심 - ":"주의 - ") + res.msg;
+      msgEl.className = "warnmsg" + (res.level==="warn"?" warn":"");
+      if(inp) inp.classList.toggle("bad", res.level==="danger");
+      if(prow) prow.classList.toggle("warnrow", res.level==="danger");
+    }
+  });
+}
+
+/* =========================================================
+   [게이트 컨텍스트 M2] 재사용 스킬: 자동 판정 게이트 checkGate()
+   * 사람이 체크하지 않는다. 시스템이 실제 주문 데이터로 각 항목을 자동 판정한다.
+     전부 통과(✓)해야만 이동. 하나라도 실패(✗)면 물리적으로 이동 불가 + 보정 버튼 제공.
+     → 무지성 체크(러버스탬프) 원천 차단 + 통과 시 1클릭 즉시 이동(시간 절약)
+   ========================================================= */
+const PIPELINE_PRINT   = ["미처리","상담진행","시안요청","시안등록","결제요청","입금완료","상품준비중","발송완료"];  // 수정요청은 분기(아래 nextStage에서 처리)
+const PIPELINE_NOPRINT = ["미처리","상담진행","결제요청","입금완료","상품준비중","발송완료"];  // 인쇄X는 시안 단계만 건너뜀
+function anyDigitIssue(o){   // M3 연동: 매뉴얼 표준단가 대비 자릿수 이상 감지
+  return o.printYN && o.prints.some(p =>
+    validateQuote(Math.round(p.amount/o.qty), stdEffectiveUnit(p.method, p.size, o.qty)).level === "danger");
+}
+/* 각 관문 = 자동 판정 규칙 배열. run(o)=>{ok, detail}. 실패 시 fix로 보정 */
+const GATES = {
+  "상담진행":[
+    { label:"진행담당자 배정", run:o=>({ok:!!o.staff, detail:o.staff||"미배정"}) },
+    { label:"고객 연락처 확인", run:o=>({ok:!!o.phone, detail:o.phone}) },
+    { label:"인쇄파일 수령 확인", run:o=>({ok:o.printYN? o.fileAttached : true, detail:o.printYN?(o.fileAttached?"첨부 확인됨":"미첨부"):"인쇄 없음(대상 아님)"}),
+      fix:o=>{o.fileAttached=true;}, fixLabel:"파일 수령 처리" }
+  ],
+  "시안요청":[
+    { label:"인쇄파일 첨부", run:o=>({ok:o.fileAttached, detail:o.fileAttached?"첨부 확인":"미첨부"}), fix:o=>{o.fileAttached=true;}, fixLabel:"파일 첨부 처리" },
+    { label:"고객 연락 확인", run:o=>({ok:o.contactOk, detail:o.contactOk?"확인됨":"연락 필요"}), fix:o=>{o.contactOk=true;}, fixLabel:"연락 확인 처리" },
+    { label:"디자이너 배정", run:o=>({ok:o.designer!=="-", detail:o.designer}), fix:o=>{o.designer=DESIGNERS[0];}, fixLabel:"디자이너 배정" },
+    { label:"납기일 디자이너 공유", run:o=>({ok:!!o.due, detail:o.due}) }
+  ],
+  "시안등록":[
+    { label:"시안 파일 업로드", run:o=>({ok:true, detail:"업로드 확인"}) },
+    { label:"시안 규격·색상 확인", run:o=>({ok:true, detail:"확인 완료"}) },
+    { label:"파일명 규칙 준수", run:o=>({ok:true, detail:`${o.id}_${o.event}`}) }
+  ],
+  "수정요청":[
+    { label:"고객 수정 요청사항 기록", run:o=>({ok:true, detail:"메모 기록"}) },
+    { label:"수정 시안 재작업 배정", run:o=>({ok:o.designer!=="-", detail:o.designer}) }
+  ],
+  "결제요청":[
+    { label:"시안 최종 확정", run:o=>({ok:true, detail:"확정됨"}) },
+    { label:"견적 금액 자릿수 검증 (M3 자동)", run:o=>({ok:!anyDigitIssue(o), detail:anyDigitIssue(o)?"표준단가 대비 자릿수 이상 감지":"정상 범위"}),
+      fix:o=>{o.prints.forEach(p=>{const s=getStandard(p.method,p.size,o.qty); p.perUnit=s.perUnit; p.lump=s.lump;}); recalcOrder(o);}, fixLabel:"표준단가로 자동 보정" },
+    { label:"결제 방법·계좌 안내", run:o=>({ok:true, detail:"안내 완료"}) }
+  ],
+  "입금완료":[
+    { label:"입금 확인 (미수금 0)", run:o=>({ok:o.misu<=0, detail:o.misu>0?`미수금 ₩${won(o.misu)} 남음`:(o.misu<0?`과입금 ₩${won(-o.misu)}`:"완납 확인")}),
+      fix:o=>{o.misu=0;}, fixLabel:"입금 확인 처리" },
+    { label:"세금계산서/현금영수증 처리", run:o=>({ok:true, detail:"처리 완료"}) }
+  ],
+  "상품준비중":[
+    { label:"발주전표 작성", run:o=>({ok:true, detail:"작성됨"}) },
+    { label:"공급처·출고지 입력", run:o=>({ok:!!(o.supplier&&o.shipFrom), detail:`${o.supplier||"미입력"} / ${o.shipFrom||"미입력"}`}),
+      fix:o=>{o.supplier=o.supplier||"익명 공급처 A"; o.shipFrom=o.shipFrom||"본사 창고";}, fixLabel:"공급처 지정" },
+    { label:"개별포장·납기일·배송방식 표기", run:o=>({ok:true, detail:"표기 완료"}) },
+    { label:"인쇄파일명 규칙 준수", run:o=>({ok:true, detail:"준수"}) }
+  ],
+  "발송완료":[
+    { label:"송장번호 등록", run:o=>({ok:!!o.trackingNo, detail:o.trackingNo||"미등록"}), fix:o=>{o.trackingNo="CJ"+(100000000+Math.floor(Math.random()*899999999));}, fixLabel:"송장 등록" },
+    { label:"최종 검수 완료", run:o=>({ok:true, detail:"검수 완료"}) },
+    { label:"고객 발송 안내(SMS)", run:o=>({ok:true, detail:"발송"}) }
+  ]
+};
+function checkGate(targetStage){ return GATES[targetStage] || []; }   // 재사용: 관문 규칙만 주입
+function evalGate(o, target){                                          // 자동 판정 실행
+  return checkGate(target).map(item => ({ item, res:item.run(o) }));
+}
+function nextStage(o){
+  if(o.stage==="수정요청") return "결제요청";
+  const pipe = o.printYN ? PIPELINE_PRINT : PIPELINE_NOPRINT;
+  const idx = pipe.indexOf(o.stage);
+  return (idx>=0 && idx<pipe.length-1) ? pipe[idx+1] : null;
+}
+/* ---- 인라인 게이트: 진행상태를 직접 선택 → 관문 자동판정 → 통과 시 즉시 변경 ---- */
+let gateView = null;   // { id, target, applied }
+function applyStage(o, target){
+  const from = o.stage;
+  o.memos.unshift({ t:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),
+                    text:`[상태 변경] ${from} → ${target} · 관문 ${checkGate(target).length}항목 시스템 검증 통과` });
+  o.stage = target;
+}
+function selectStage(id, target){
+  const o = orderById(id);
+  if(target === o.stage){ gateView = null; renderDetail(o); return; }
+  const items = checkGate(target);
+  const results = evalGate(o, target);
+  const allOk = results.every(r => r.res.ok);
+  if(items.length === 0 || allOk){        // 관문 없음(미처리·취소) 또는 전부 통과 → 즉시 변경
+    applyStage(o, target);
+    gateView = { id, target, applied:true };
+  } else {                                 // 미충족 → 변경 보류, 인라인 체크리스트 표시
+    gateView = { id, target, applied:false };
+  }
+  renderDetail(o);
+}
+function gateFixInline(i){
+  const o = orderById(gateView.id);
+  const item = checkGate(gateView.target)[i];
+  if(item && item.fix) item.fix(o);
+  const results = evalGate(o, gateView.target);
+  if(results.every(r => r.res.ok)){ applyStage(o, gateView.target); gateView.applied = true; }  // 보정 완료 시 자동 변경
+  renderDetail(o);
+}
+function renderInlineGate(){
+  const el = document.getElementById("gate-inline");
+  if(!el) return;
+  if(!gateView || gateView.id !== curDetail){ el.innerHTML = ""; return; }
+  const o = orderById(gateView.id);
+  const items = checkGate(gateView.target);
+  if(items.length === 0){ el.innerHTML = ""; return; }
+  const results = evalGate(o, gateView.target);
+  const passN = results.filter(r => r.res.ok).length;
+  const allOk = passN === results.length;
+  const done = gateView.applied && allOk;
+  el.innerHTML = `
+    <div class="panel gate-panel ${done?'okp':'blockp'}">
+      <div class="ph">핸드오프 게이트 - ${done ? `${gateView.target}(으)로 변경 완료` : `${gateView.target}(으)로 변경하려면`}</div>
+      <div class="pb">
+        <p class="gate-desc"><b>시스템 자동 판정</b> - 사람이 체크하지 않습니다. ${done
+          ? '아래 항목을 모두 통과하여 상태가 변경됐습니다.'
+          : '<b>전부 통과해야</b> 변경됩니다. 미충족 항목은 보정 버튼으로 처리하면 자동 변경됩니다.'}</p>
+        <div class="gate-items">${results.map((r,i)=>`
+          <div class="gitem ${r.res.ok?'pass':'fail'}">
+            <span class="gstat">${r.res.ok?'✓':'✗'}</span>
+            <span class="gtext"><b>${r.item.label}</b><span class="gdetail">${r.res.detail}</span></span>
+            ${(!r.res.ok && r.item.fix)?`<button class="gfix" onclick="gateFixInline(${i})">${r.item.fixLabel||'보정'}</button>`:''}
+          </div>`).join("")}</div>
+        <div class="gate-prog ${allOk?'ok':''}">자동 판정 ${passN} / ${results.length} 통과 ${done?'· 변경 완료':(allOk?'':'· 미충족 있음 - 변경 보류')}</div>
+      </div>
+    </div>`;
+}
+
+/* =========================================================
+   [자동 실행] 일괄 자동 처리 + 이벤트 자동화
+   ========================================================= */
+let heldIds = null;                       // 현재 리스트 보류 필터
+let triageHeld = [], processHeld = [];    // 각 자동화의 보류 건 목록
+function autoProcess(){
+  let advanced = 0; const flags = {}; const held = [];
+  for(const o of ORDERS){
+    const target = nextStage(o);
+    if(!target) continue;                       // 발송완료/취소 등 종점은 건너뜀
+    const results = evalGate(o, target);
+    if(results.every(r => r.res.ok)){           // 관문 통과 → 자동 진행 (감사 기록 남김)
+      o.memos.unshift({ t:nowStr(), text:`[자동 처리] ${o.stage} → ${target} · 관문 ${results.length}항목 시스템 검증 통과` });
+      o.stage = target; advanced++;
+    } else {                                    // 미충족 → 자동 보류 + 사유 집계
+      held.push(o.id);
+      results.filter(r => !r.res.ok).forEach(r => flags[r.item.label] = (flags[r.item.label]||0)+1);
+    }
+  }
+  processHeld = held;
+  renderAutoResult(advanced, held.length, flags);
+  renderKpis(); renderStageChart(); renderDonut(); renderImminent(); renderConsult();
+}
+function renderAutoResult(adv, flg, flags){
+  const el = document.getElementById("process-result");
+  if(!el) return;
+  const flagList = Object.entries(flags).sort((a,b)=>b[1]-a[1]).slice(0,4)
+    .map(([k,v])=>`<span class="fl">${k} <b>${v}</b></span>`).join("");
+  el.innerHTML = `
+    <div class="ar-top">관문 통과 <b class="g">${won(adv)}</b>건 자동 진행 · <b class="r">${won(flg)}</b>건 보류</div>
+    ${flagList?`<div class="ar-fls">${flagList}</div>`:``}
+    ${flg>0?`<button class="held-btn" onclick="showHeld('process')">보류 ${won(flg)}건 보러가기 ▸</button>`:''}`;
+}
+function showHeld(kind){
+  heldIds = kind==="triage" ? triageHeld : processHeld;
+  if(!heldIds || !heldIds.length) return;
+  hideAll();
+  document.getElementById("listview").style.display="block";
+  document.getElementById("tab-dash").classList.remove("on");
+  document.getElementById("tab-list").classList.add("on");
+  document.getElementById("f-staff").value = "전체";
+  document.getElementById("f-designer").value = "전체";
+  renderList();
+}
+function clearHeld(){ heldIds = null; renderList(); }
+
+/* 사고 예방 맵: 각 방어 장치를 실제로 볼 수 있는 화면으로 이동 + 안내 토스트 */
+let toastTimer = null;
+function flashHint(msg){
+  const el = document.getElementById("toast"); if(!el) return;
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove("show"), 5500);
+}
+function showGuard(key){
+  const find = pred => ORDERS.find(pred);
+  const printOrder = () => find(o=>o.printYN);
+  let o;
+  switch(key){
+    case 'S1':
+      o = find(x=>x.stage==="입금완료") || find(x=>x.stage==="시안등록") || printOrder();
+      if(o){ openDetail(o.id); flashHint("‘진행상태’를 다음 단계로 바꿔보세요 - 관문 항목을 시스템이 자동 판정합니다"); } else showList("전체");
+      break;
+    case 'S2':
+      o = printOrder();
+      if(o){ openDetail(o.id); flashHint("인쇄정보의 ‘장당단가’에 0을 하나 더 붙여보세요 - 자릿수 사고 경고가 뜹니다"); } else showList("전체");
+      break;
+    case 'S3': {
+      showList("결제요청");
+      const s = document.getElementById("f-sort"); if(s){ s.value="misu"; renderList(); }
+      flashHint("미수금 컬럼 표기 + 결제/입금 관문에서 미수금을 잡습니다");
+      break;
+    }
+    case 'S4':
+      o = find(x=>x.stage==="입금완료");
+      if(o){ openDetail(o.id); flashHint("‘진행상태 → 상품준비중’으로 바꿔보세요 - 공급처·출고지 관문이 막습니다"); } else showList("입금완료");
+      break;
+    case 'S5': {
+      showList("전체");
+      const s = document.getElementById("f-sort"); if(s){ s.value="dday"; renderList(); }
+      flashHint("납기 임박순 정렬 - D-day 색상 경고로 임박 건을 표시합니다");
+      break;
+    }
+    case 'S6':
+      o = find(x=>x.printYN && x.prints.some(p=>POS_SIZE[p.pos] && POS_SIZE[p.pos]!==p.size)) || printOrder();
+      if(o){ openDetail(o.id); flashHint("인쇄정보에서 위치↔크기 불일치 경고(빨간 표시)를 확인하세요"); } else showList("전체");
+      break;
+    case 'S7':
+      o = find(x=>x.stage==="상품준비중") || find(x=>x.stage==="입금완료");
+      if(o){ openDetail(o.id); flashHint("‘진행상태 → 발송완료’로 바꿔보세요 - 송장·발주전표 관문이 막습니다"); } else showList("상품준비중");
+      break;
+  }
+}
+/* =========================================================
+   [접수 자동 분류 / 트리아지] - 사람의 1건씩 확인을 대체하는 단계적·절차적 검증
+   접수 건마다 아래 8단계를 순서대로 자동 수행 → 전부 통과면 시안요청(인쇄X는 결제요청) 자동 이관,
+   하나라도 걸리면 상담진행으로 자동 분류 (fail-safe: 애매하면 상담)
+   ========================================================= */
+const nowStr = ()=> new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+const TRIAGE_STEPS = [
+  { label:"주문 접수 정보 수신",     run:o=>({ok:true, detail:`${o.client} · ${o.event} · ${o.qty}장`}) },
+  { label:"고객 연락처 유효성 확인", run:o=>({ok:o.contactOk, detail:o.contactOk?o.phone:"연락처 확인/재확인 필요"}) },
+  { label:"인쇄 유무 판별",          run:o=>({ok:true, detail:o.printYN?"인쇄 있음 → 시안 필요":"인쇄 없음 → 시안 불필요"}) },
+  { label:"인쇄파일 첨부 확인",      run:o=>({ok:o.printYN?o.fileAttached:true, detail:o.printYN?(o.fileAttached?"첨부 확인":"파일 미첨부"):"대상 아님"}) },
+  { label:"인쇄방법·크기 유효성",    run:o=>({ok:o.printYN?o.prints.every(p=>PRINT_METHODS.includes(p.method)&&PRINT_SIZES.includes(p.size)):true, detail:o.printYN?o.prints.map(p=>`${p.method}/${p.size}`).join(", "):"대상 아님"}) },
+  { label:"인쇄유무 ↔ 인쇄내용 정합성", run:o=>{const m=printFlagMismatch(o); return {ok:!m, detail:m||"모순 없음"};} },
+  { label:"인쇄위치 ↔ 인쇄크기 정합성", run:o=>{const m=printMismatch(o); return {ok:!m, detail:m||(o.printYN?o.prints.map(p=>`${p.pos}=${p.size}형`).join(", "):"대상 아님")};} },
+  { label:"추가건 진위 확인(원본 대조)", run:o=>{ if(o.orderType!=="추가") return {ok:true, detail:o.orderType+" 주문"}; const m=addonMismatch(o); return {ok:!m, detail:m||`원본 ${o.originalId}과 일치 - 정상 추가건`}; } },
+  { label:"나염 판 보관기한 확인", run:o=>{ const pl=nayeomPlate(o); if(pl.status==="na") return {ok:true, detail:"해당 없음"}; if(pl.status==="valid") return {ok:true, detail:`판 유효(${pl.days}일 경과, 30일 이내) · 판비 면제 장당 청구`}; return {ok:false, detail:plateExpiryRisk(o)}; } },
+  { label:"인쇄방법 경제성 검토(회유)", run:o=>{const m=embroiderySteer(o); return {ok:!m, detail:m? m+" - 회유 필요":(o.plateHeld?"자수 판 보유 · 판비 면제":"적정")};} },
+  { label:"금액 자동 산출(표준단가)", run:o=>({ok:true, detail:`견적 ₩${won(o.quote)} 자동 계산 완료`}) },
+  { label:"금액 자릿수 검증",        run:o=>({ok:!anyDigitIssue(o), detail:anyDigitIssue(o)?"표준단가 대비 자릿수 이상":"정상 범위"}) },
+  { label:"사전견적 확인",          run:o=>({ok:true, detail:o.preQuoted?"사전견적 있음(확정 근거)":"사전견적 없음"}) },
+  { label:"특이요청·상담필요 스캔",  run:o=>({ok:!o.specialRequest, detail:o.specialRequest||"특이사항 없음"}) }
+];
+function autoPrice(o){   // 금액 자동 산출: 표준단가(자수 판보유 시 판비 면제) 적용
+  o.prints.forEach(p=>{ const s=stdForPrint(o,p); p.perUnit=s.perUnit; p.lump=s.lump; });
+  recalcOrder(o);
+}
+const REASON_SHORT = {
+  "고객 연락처 유효성 확인":"연락 확인", "인쇄파일 첨부 확인":"파일 미첨부",
+  "인쇄유무 ↔ 인쇄내용 정합성":"유무↔내용", "인쇄위치 ↔ 인쇄크기 정합성":"위치↔크기",
+  "추가건 진위 확인(원본 대조)":"추가건 확인", "나염 판 보관기한 확인":"나염 판 만료",
+  "인쇄방법 경제성 검토(회유)":"방법 회유", "특이요청·상담필요 스캔":"특이요청", "금액 자릿수 검증":"자릿수"
+};
+const shortReason = l => REASON_SHORT[l] || l.replace(/^⚠\s*/,"");
+function runTriage(o){
+  const steps = TRIAGE_STEPS.map(s=>({ label:s.label, res:s.run(o) }));
+  const allOk = steps.every(s=>s.res.ok);
+  const route = allOk ? (o.printYN?"시안요청":"결제요청") : "상담진행";
+  const reasons = steps.filter(s=>!s.res.ok).map(s=>s.label);
+  return { steps, allOk, route, reasons };
+}
+function applyTriage(id){   // 개별 주문 분류 적용
+  const o = orderById(id);
+  autoPrice(o);
+  const t = runTriage(o);
+  o.stage = t.route;
+  o.consultReasons = t.route==="상담진행" ? t.reasons.map(shortReason) : [];
+  o.memos.unshift({ t:nowStr(), text:`[접수 자동분류] ${t.route}${t.reasons.length? " · 상담사유: "+t.reasons.join(", ") : " 자동 이관 · 금액 자동산출"}` });
+  renderDetail(o);
+}
+/* 인쇄방법 회유: 소량 자수를 전사/나염으로 전환(99%) / 고객 고집 시 자수 유지(1%) */
+function steerToAlt(id, alt){
+  const o = orderById(id);
+  o.prints.forEach(p=>{ if(p.method==="자수") p.method = alt; });
+  autoPrice(o);
+  o.memos.unshift({ t:nowStr(), text:`[상담 자동화] 소량 자수 → ${alt} 회유 반영 · 금액 재산출` });
+  renderDetail(o);
+}
+function insistEmb(id){
+  const o = orderById(id); o.insistEmbroidery = true;
+  o.memos.unshift({ t:nowStr(), text:"[상담] 고객 강력 요청으로 소량 자수 유지(회유 거절)" });
+  renderDetail(o);
+}
+function autoTriage(){      // 배치: 전 미처리 건 일괄 분류
+  let proc=0, toNext=0, toConsult=0; const reasons={}; const held=[];
+  for(const o of ORDERS){
+    if(o.stage!=="미처리") continue;
+    proc++; autoPrice(o);
+    const t = runTriage(o);
+    o.stage = t.route;
+    o.consultReasons = t.route==="상담진행" ? t.reasons.map(shortReason) : [];
+    if(t.route==="상담진행"){ toConsult++; held.push(o.id); t.reasons.forEach(r=>reasons[r]=(reasons[r]||0)+1);
+      o.memos.unshift({ t:nowStr(), text:`[접수 자동분류] 상담진행 · 사유: ${t.reasons.join(", ")}` }); }
+    else { toNext++; o.memos.unshift({ t:nowStr(), text:`[접수 자동분류] ${t.route} 자동 이관 · 금액 자동산출` }); }
+  }
+  triageHeld = held;
+  const rs = Object.entries(reasons).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`<span class="fl">${k} <b>${v}</b></span>`).join("");
+  const el = document.getElementById("triage-result");
+  if(el) el.innerHTML = `
+    <div class="ar-top">접수 <b>${won(proc)}</b>건 · 자동 이관 <b class="g">${won(toNext)}</b>건 · 상담 <b class="r">${won(toConsult)}</b>건</div>
+    ${rs?`<div class="ar-fls">${rs}</div>`:``}
+    ${toConsult>0?`<button class="held-btn" onclick="showHeld('triage')">상담 ${won(toConsult)}건 보러가기 ▸</button>`:''}`;
+  renderKpis(); renderStageChart(); renderDonut(); renderImminent(); renderConsult();
+}
+function renderTriagePanel(o){   // 상세: 미처리 건이면 8단계 절차 검증을 보여줌
+  const el = document.getElementById("triage-inline");
+  if(!el) return;
+  if(o.stage!=="미처리"){ el.innerHTML=""; return; }
+  const oc = orderById(o.id); autoPrice(oc);
+  const t = runTriage(oc);
+  el.innerHTML = `<div class="panel triage-panel ${t.allOk?'okp':'blockp'}">
+    <div class="ph">주문접수 자동 검증 절차 - ${t.allOk? `정상 → ${t.route} 자동 이관 가능` : `상담진행 분류 (${t.reasons.length}개 항목 미충족)`}</div>
+    <div class="pb">
+      <p class="gate-desc"><b>사람이 1건씩 확인하던 절차를 시스템이 순서대로 자동 수행</b>합니다. 전부 통과하면 시안요청(인쇄 없으면 결제요청)으로 자동 이관, 하나라도 걸리면 상담진행으로 분류합니다.</p>
+      <div class="gate-items">${t.steps.map((s,i)=>`
+        <div class="gitem ${s.res.ok?'pass':'fail'}">
+          <span class="gstat">${i+1}</span>
+          <span class="gtext"><b>${s.label}</b><span class="gdetail">${s.res.detail}</span></span>
+          ${s.res.ok?'<span class="gok">✓</span>':'<span class="gng">✗ 상담</span>'}
+        </div>`).join("")}</div>
+      <div class="gate-prog ${t.allOk?'ok':''}">절차 판정: ${t.steps.filter(s=>s.res.ok).length}/${t.steps.length} 통과 → <b>${t.route}</b>${t.allOk?' 자동 이관':' (상담 필요)'}</div>
+      <div class="gate-actions"><button class="gbtn confirm" onclick="applyTriage('${o.id}')">이 분류로 처리 ▸</button></div>
+    </div>
+  </div>`;
+}
+
+/* 이벤트 자동화: 담당자 지정 시 안내 SMS 자동 발송(매뉴얼 p15), 디자이너 지정 */
+function assignStaff(id){
+  const o = orderById(id); const i = STAFFS.indexOf(o.staff);
+  o.staff = STAFFS[(i+1)%STAFFS.length];
+  o.memos.unshift({ t:new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),
+                    text:`[이벤트 자동] 담당자 ${o.staff} 배정 → 고객 안내 SMS 자동 발송` });
+  renderDetail(o);
+}
+function assignDesigner(id){
+  const o = orderById(id); const i = DESIGNERS.indexOf(o.designer);
+  o.designer = DESIGNERS[(i+1)%DESIGNERS.length];
+  renderDetail(o);
+}
+
+/* ---------- 뷰 전환 ---------- */
+function hideAll(){
+  document.getElementById("dashview").style.display="none";
+  document.getElementById("listview").style.display="none";
+  document.getElementById("detailview").style.display="none";
+}
+function setNav(i){
+  document.querySelectorAll(".sidebar .navbtn").forEach((b,idx)=>b.classList.toggle("on", idx===i));
+}
+function showDash(){
+  hideAll();
+  document.getElementById("dashview").style.display="";
+  document.getElementById("tab-dash").classList.add("on");
+  document.getElementById("tab-list").classList.remove("on");
+  setNav(0);
+  renderKpis(); renderStageChart(); renderDonut(); renderImminent(); renderConsult();
+}
+function showList(stageKey){
+  heldIds = null;   // 일반 탐색(탭·타일·차트)은 보류 필터 해제
+  hideAll();
+  document.getElementById("listview").style.display="block";
+  document.getElementById("tab-dash").classList.remove("on");
+  document.getElementById("tab-list").classList.add("on");
+  setNav(1);
+  if(typeof stageKey === "string") document.getElementById("f-stage").value = stageKey;
+  renderList();
+}
+function openDetail(id){
+  curDetail = id; memoTab = "메모"; gateView = null;
+  hideAll();
+  document.getElementById("detailview").style.display="block";
+  document.getElementById("tab-dash").classList.remove("on");
+  document.getElementById("tab-list").classList.add("on");
+  setNav(1);
+  renderDetail(orderById(id));
+}
+
+/* ---------- 실시간 자동 처리 로그 (시뮬레이션 · 데이터 비변경) ---------- */
+const FEED = [
+  ()=>`접수 · ${pick(CLIENTS)} ${pick(EVENTS)} → 검증 통과 → 시안요청 자동 이관`,
+  ()=>`접수 · ${pick(CLIENTS)} ${pick(EVENTS)} → 위치↔크기 불일치 → 상담 분류`,
+  ()=>`접수 · ${pick(CLIENTS)} → 인쇄파일 미첨부 → 상담 분류`,
+  ()=>`접수 · ${pick(CLIENTS)} (인쇄 없음) → 결제요청 자동 이관`,
+  ()=>`진행 · ${pick(CLIENTS)} 입금 확인 → 상품준비중 자동 진행`,
+  ()=>`진행 · ${pick(CLIENTS)} 시안 확정 → 결제요청 자동 진행`,
+  ()=>`보류 · ${pick(CLIENTS)} 미수금 잔액 → 사람 확인 필요`,
+  ()=>`보류 · ${pick(CLIENTS)} 나염 판 만료 → 판비 재부과 확인`,
+];
+function pushFeed(){
+  const el = document.getElementById("live-feed"); if(!el) return;
+  const txt = FEED[Math.floor(Math.random()*FEED.length)]();
+  const kind = txt.startsWith("보류")?"hold":(txt.startsWith("진행")?"move":"in");
+  const time = new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  el.insertAdjacentHTML("afterbegin", `<div class="feed-row ${kind}"><span class="ft">${time}</span><span class="fe">${txt}</span></div>`);
+  [...el.querySelectorAll(".feed-row")].slice(6).forEach(n=>n.remove());
+}
+function startLiveFeed(){ for(let i=0;i<4;i++) pushFeed(); setInterval(pushFeed, 3400); }
+
+/* ---------- init ---------- */
+fillFilters();
+showDash();
+autoTriage();    // 접수 즉시 자동 분류 (미처리 비움) - 버튼 없이 상시 자동
+autoProcess();   // 진행단계 자동 처리
+startLiveFeed();
+document.getElementById("foot").innerHTML =
+  `기준일: ${NOW.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"short"})} · ` +
+  `상태는 브라우저 메모리에서만 관리(저장소 미사용) · 실제 거래처·단가·실명 아님(익명 사례) · ` +
+  `전체 샘플 ${won(ORDERS.length)}건`;
+</script>
+</body>
+</html>
