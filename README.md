@@ -2,7 +2,7 @@
 
 > 사람이 기억하던 확인을, **시스템이 관문에서 자동 차단**한다 — 단체복 B2B 커머스의 반복 사고 7종을 예방하는 인터랙티브 프로토타입.
 
-**▶ 데모:** https://<your-id>.github.io/danchebok-automation/  *(GitHub Pages 배포 후 이 주소로 교체)*
+**▶ 데모:** [단체복 자동화 대시보드](https://kim-jin22.github.io/danchebok-automation/)
 
 > 이 저장소는 **하네스 방식**으로 맥락·재사용 스킬·컨텍스트를 나눠 관리합니다.
 > 단일 HTML(HTML+CSS+JS) · 백엔드 없음 · **가상·익명 샘플 데이터** (실제 거래처·단가·실명 아님).
