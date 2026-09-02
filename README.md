@@ -34,23 +34,29 @@ HTML/CSS/JS(단일 파일, 백엔드 없음) · Claude Code 기반 개발
 
 ## 데모
 
-_준비 중 — 아래 자리에 스크린샷/GIF를 채울 예정입니다._
+**대시보드**
+
+![대시보드](assets/demo/00_dashboard.png)
+
+**사고 예방 맵 → M2 게이트 흐름**
+
+![사고 예방 맵에서 게이트로 이동하는 흐름](assets/demo/05_flow.gif)
 
 **주문접수 자동 분류(트리아지)**
 
-![주문접수 트리아지](assets/demo/01_triage.gif)
+![주문접수 트리아지](assets/demo/01_triage.png)
 
 **M2 핸드오프 게이트**
 
-![핸드오프 게이트](assets/demo/02_handoff_gate.gif)
+![핸드오프 게이트](assets/demo/02_handoff_gate.png)
 
 **검증(감사) 탭**
 
-![검증 탭](assets/demo/03_audit_tab.gif)
+![검증 탭](assets/demo/03_audit_tab.png)
 
 **인터랙티브 사고 예방 맵**
 
-![사고 예방 맵](assets/demo/04_prevention_map.gif)
+![사고 예방 맵](assets/demo/04_prevention_map.png)
 
 ## 설계 방식 - 하네스 3요소
 
@@ -70,6 +76,6 @@ _준비 중 — 아래 자리에 스크린샷/GIF를 채울 예정입니다._
 - `docs/작업지시서.md` - 맥락 고정용 지시서 (익명)
 - `assets/demo/` - 데모 스크린샷·GIF
 
----
+## 참고
 
-*익명 사례 연구 · 단체복 커머스 실무 경험 기반 · 가상 데이터 · 2026*
+익명 사례 연구 · 단체복 커머스 실무 경험 기반 · 가상 데이터 · 2026
