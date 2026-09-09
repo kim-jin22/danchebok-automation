@@ -33,7 +33,7 @@ HTML/CSS/JS(단일 파일, 백엔드 없음) · Claude Code 기반 개발
 ## 데모
 
 **대시보드**
-![단체복 자동화 대시보드](https://kim-jin22.github.io/danchebok-automation/)
+[단체복 자동화 대시보드](https://kim-jin22.github.io/danchebok-automation/)
 
 ![대시보드](assets/demo/00_dashboard.png)
 
